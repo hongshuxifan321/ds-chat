@@ -1,6 +1,9 @@
 import type { zh } from './zh.js'
 
 export const en = {
+  greetingMorning: 'Good morning. What are you planning today?',
+  greetingAfternoon: 'Good afternoon. What are you planning today?',
+  greetingEvening: 'Good evening. What are you planning today?',
   welcomeMessageChat250808: 'How can I help you?',
   contentCaveat: 'AI-generated, for reference only',
   expandSiderbarButton: 'Open sidebar',
@@ -14,7 +17,7 @@ export const en = {
     'Chats or attachments have not been saved locally. Retry before closing this page.',
   sessionDeleteFailed: 'Unable to delete this chat. Please try again.',
   settings: 'Settings',
-  appName: 'API usage demo',
+  appName: 'DS Chat',
   deleteSessionModalContentTitle: 'Delete chat?',
   deleteSessionWithFilesDescription:
     'This chat and its uploaded files will be permanently deleted and cannot be recovered. Delete this chat?',
@@ -57,8 +60,8 @@ export const en = {
   messageSearchNoResult: 'No relevant results found',
   toolSearch1Result: 'Found 1 web page',
   toolSearchResults: 'Found {count} web pages',
-  messageSearchResult: 'Read 1 web page',
-  messageSearchResults: 'Read {count} web pages',
+  messageSearchResult: 'Searched 1 web page',
+  messageSearchResults: 'Searched {count} web pages',
   toolOpenOneIntro: 'Read 1 page',
   toolOpensIntro: 'Read {count} pages',
   toolOpenFail: 'Read failed',

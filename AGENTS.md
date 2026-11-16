@@ -55,4 +55,5 @@ DS-Chat/
 - PWA 已完成：manifest、service worker、图标、离线壳
 - 设置页有三步引导（创建 Key → 充值 → 回填）与两个教程弹窗
 - 子路径部署只做了静态检查（相对路径、manifest scope），线上未验证
-- 待办：UI 对齐官方网页端（前一轮已尝试并撤回，等重新设计）；GitHub Pages 尚未发布
+- 已上线：https://hongshuxifan321.github.io/ds-chat/ （Pages，GitHub Actions 构建，2026-11-16 首次部署成功）
+- 待办：UI 对齐官方网页端（前一轮已尝试并撤回，等重新设计）；浏览器端安装/离线/移动端渲染待人工验证

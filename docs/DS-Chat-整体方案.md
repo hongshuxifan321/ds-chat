@@ -79,16 +79,18 @@ CI 会依次执行：`pnpm install --frozen-lockfile` → `pnpm type` → `pnpm 
 
 ## 六、上线验证清单
 
-| # | 检查项 | 通过标准 |
-|---|---|---|
-| 1 | 首页 | 200，控制台无报错 |
-| 2 | manifest | DevTools → Application → Manifest 能读出名称与图标 |
-| 3 | service worker | 状态 activated，scope 为 `/ds-chat/` |
-| 4 | 离线 | 断网后刷新，页面仍能打开 |
-| 5 | 安装 | 桌面 Chrome/Edge 出现"安装"按钮 |
-| 6 | 对话 | 填入 Key 后能正常流式回答 |
-| 7 | 能力 | 深度思考、智能搜索、文件上传可用 |
-| 8 | 移动端 | iOS Safari / Android Chrome 可"添加到主屏幕" |
+已完成的项在「状态」列标注；HTTP 层项已实测，浏览器行为项需人工用真机点一遍。
+
+| # | 检查项 | 通过标准 | 状态 |
+|---|---|---|---|
+| 1 | 首页 | 200，控制台无报错 | 已核：200，标题 DS Chat，入口 JS/CSS 均 200 |
+| 2 | manifest | DevTools → Application → Manifest 能读出名称与图标 | 已核：`name=DS Chat`、`start_url=./`、3 个图标均 200 |
+| 3 | service worker | 状态 activated，scope 为 `/ds-chat/` | 待人工（文件已 200，注册逻辑在页面加载后） |
+| 4 | 离线 | 断网后刷新，页面仍能打开 | 待人工 |
+| 5 | 安装 | 桌面 Chrome/Edge 出现"安装"按钮 | 待人工 |
+| 6 | 对话 | 填入 Key 后能正常流式回答 | 待人工 |
+| 7 | 能力 | 深度思考、智能搜索、文件上传可用 | 待人工 |
+| 8 | 移动端 | iOS Safari / Android Chrome 可"添加到主屏幕" | 待人工 |
 
 ## 七、上游同步策略
 
@@ -143,3 +145,22 @@ P1 的成本估算器是转化关键：用户不知道 token 怎么算，填"每
 未能在本机验证：`pnpm install --frozen-lockfile`（pnpm store 锁被拒）、移动端渲染、`file://` 双击可用性。
 
 已单独实测：以 `https://hongshuxifan321.github.io/ds-chat/` 为 origin 向 `api.deepseek.com` 发 CORS 预检，返回 200 且回显该 origin，允许 `authorization, content-type, x-api-key, anthropic-version, anthropic-beta`。上线后 API 请求不会被跨域拦下。
+
+## 十二、部署记录
+
+| 项 | 值 |
+|---|---|
+| 仓库 | <https://github.com/hongshuxifan321/ds-chat>（公开，MIT） |
+| 线上地址 | <https://hongshuxifan321.github.io/ds-chat/> |
+| 首次部署 | 2026-11-16，commit `b2bcc0a`，Actions run `43826195482`，build + deploy 全绿 |
+| 提交数 | 17（含上游 chat-demo 全部历史） |
+
+**部署过程中确认的两件事**
+
+1. **仓库必须是完整历史。** 本地这份是浅克隆（`.git/shallow` 钉在上游 `5d5dd75`），直接推空仓库会报
+   `did not receive expected object …` ——`git fsck` 与 `git bundle verify` 在浅边界内都显示"完整"，查不出来。
+   解法：`git fetch --unshallow origin` 补全上游历史后再推。
+2. **构建会压缩 `public/sw.js`。** 源文件 1690 字节，产物 887 字节。逐条比对确认语义等价：
+   跨域请求仍完全不拦截、导航仍 network-first、静态资源仍 cache-first。
+3. **CI 产物与本地构建的 hash 不同**（线上 `main.3898630a.js`，本地 `main.35a5cf12.js`），
+   因为 CI 按 `pnpm-lock.yaml` 解析依赖、本地用的是 npm 安装的版本。CI 的 `pnpm type` / `pnpm lint` / `pnpm build` 全部通过。

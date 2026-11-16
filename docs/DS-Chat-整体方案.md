@@ -37,7 +37,7 @@
 ├── localStorage ← API Key、设置
 ├── IndexedDB ← 会话、消息分支、附件原件
 └── 直连 https://api.deepseek.com/anthropic/v1/messages
-        （实测：`127.0.0.1:5750`、`localhost:8090`、`192.168.3.57:8090` 均被允许；`*.github.io` 待上线后验证）
+        （实测：`127.0.0.1:5750`、`localhost:8090`、`192.168.3.57:8090`、`https://hongshuxifan321.github.io/ds-chat/` 均被回显允许）
 ```
 
 **Service Worker 策略**
@@ -140,4 +140,6 @@ P1 的成本估算器是转化关键：用户不知道 token 怎么算，填"每
 
 已核：密钥与个人信息的全历史扫描（无）、跟踪文件 179 个（无构建产物与依赖）、import 大小写 380 条全部解析、lockfile 声明 28/28 一致、CI action pin 6/6 校验、子路径资源路径、service worker 语法、客户端无路由（Pages 无需 404 重写）、`tsconfig` 已设 `noEmit`（`pnpm type` 不会往 `src/` 吐 js）。
 
-未能在本机验证：`pnpm install --frozen-lockfile`（pnpm store 锁被拒）、移动端渲染、`file://` 双击可用性、`*.github.io` origin 的 CORS。
+未能在本机验证：`pnpm install --frozen-lockfile`（pnpm store 锁被拒）、移动端渲染、`file://` 双击可用性。
+
+已单独实测：以 `https://hongshuxifan321.github.io/ds-chat/` 为 origin 向 `api.deepseek.com` 发 CORS 预检，返回 200 且回显该 origin，允许 `authorization, content-type, x-api-key, anthropic-version, anthropic-beta`。上线后 API 请求不会被跨域拦下。

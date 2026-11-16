@@ -196,14 +196,12 @@ export async function* streamMessage(
     signal,
   })
   const contentType = response.headers.get('Content-Type') ?? ''
-  if (response.body && !contentType.includes('text/event-stream')) {
-    throw await readErrorResponse(response, 'protocol', '')
-  }
   let events: AsyncIterable<ServerSentEvent>
-  if (response.body) {
+  if (response.body && contentType.includes('text/event-stream')) {
     events = readServerSentEvents(response.body, signal)
   } else {
-    // 部分安卓内置浏览器与旧 WebView 拿不到 response.body：一次性读完再解析，
+    // 响应头只当提示、不当判据：部分安卓内置浏览器与旧 WebView 拿不到 response.body，
+    // 运营商与代理还可能改写或丢掉 Content-Type。只要报文本身是 SSE 就照常解析，
     // 否则整段原始报文会被当成错误信息展示，用户花了钱却看不到回答。
     const text = await response.text()
     if (!text.includes('data:')) {

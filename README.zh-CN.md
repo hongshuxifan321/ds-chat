@@ -1,25 +1,32 @@
-# chat-demo（PWA 分支）
+# DS Chat
 
 [English](README.md) | 简体中文
 
 > **这是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的派生分支，改成了可安装的 PWA，非 DeepSeek 官方产品，与深度求索无关。** 原项目 MIT 许可，版权归 DeepSeek，许可证原文见 [LICENSE](LICENSE)。
 >
-> - 部署：推到自己的 GitHub 仓库 → Settings → Pages → Source 选 **GitHub Actions** → 推送到 `main` 自动构建发布。
-> - 使用：打开页面 → 设置 → 填自己的 DeepSeek API Key；也可以“添加到主屏幕”当 App 用。
+> - 使用：打开页面 → 设置 → 填自己的 DeepSeek API Key。设置页里有「创建 Key → 充值 → 回填」三步引导。
 > - 注意：Key 存在浏览器 `localStorage`，页面由公共仓库托管，请勿使用主账号的 Key，请自行评估篡改与钓鱼风险。
 > - 限制：GitHub Pages 在中国大陆访问不稳定，必要时用 Cloudflare Pages 再挂一份。
 
-基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
+自带 API Key 的 DeepSeek 对话客户端。无需应用后端，浏览器直接请求 DeepSeek API；Key、会话和附件都留在本机浏览器，不经过任何第三方服务器。
 
-点击 [在线体验](https://deepseek-ai.github.io/chat-demo/) 即可使用，也可以前往 [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases) 下载压缩包，解压后双击 `index.html` 在本地使用，无需安装或构建。首次使用时，请在设置中填写 API Key。
+在线地址：<https://hongshuxifan321.github.io/ds-chat/>
+
+需要 HTTPS 才能“添加到主屏幕”并离线打开，用 HTTP 打开时只能当普通网页使用。也可以 `pnpm build` 后把 `dist/` 部署到任意静态服务器，或直接打开 `dist/index.html`（需浏览器允许 `file://` 页面使用存储，且 API 服务允许其跨域请求）。
+
+## 与上游的差别
+
+- 加了 `manifest.json`、service worker 和图标：可安装到桌面/主屏，离线时能打开界面外壳；对话请求一律直连 API，不写入缓存。
+- 设置页加了「创建 API Key → 充值 → 回填」三步引导，以及从官方 App 导出历史对话的教程。
+- 品牌、标题、主题色和图标换成 DS Chat；界面组件与对话协议保持上游原样。
 
 ## 运行
 
 准备 Node.js 22.12+ 和 pnpm：
 
 ```sh
-git clone https://github.com/deepseek-ai/chat-demo.git
-cd chat-demo
+git clone https://github.com/hongshuxifan321/ds-chat.git
+cd ds-chat
 pnpm install
 pnpm dev
 ```

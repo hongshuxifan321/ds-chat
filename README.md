@@ -1,18 +1,32 @@
-# chat-demo
+# DS Chat
 
 English | [简体中文](README.zh-CN.md)
 
-A static chat demo powered by the DeepSeek API. No application backend is required: the browser connects directly to the configured API service.
+> **A fork of [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) turned into an installable PWA. This is not an official DeepSeek product and is not affiliated with DeepSeek.** The original project is MIT licensed, copyright DeepSeek; see [LICENSE](LICENSE).
+>
+> - Usage: open the page → Settings → enter your own DeepSeek API Key. Settings walks you through creating a key, topping up, and pasting it back.
+> - Note: the key is stored in the browser's `localStorage` and the page is hosted from a public repository. Do not use a key for your main account, and judge tampering and phishing risk yourself.
+> - Limitation: GitHub Pages is unreliable from mainland China; mirror it on Cloudflare Pages if needed.
 
-You can [try the app online](https://deepseek-ai.github.io/chat-demo/) or download the archive from [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases), extract it, and double-click `index.html` to use it locally without installation or a build. Enter your API key in Settings before your first chat.
+A DeepSeek chat client that runs on your own API key. No application backend: the browser calls the DeepSeek API directly, and your key, conversations, and attachments stay in the local browser.
+
+Live: <https://hongshuxifan321.github.io/ds-chat/>
+
+HTTPS is required to install it to the home screen and open it offline; over HTTP it behaves as an ordinary web page. You can also run `pnpm build` and deploy `dist/` to any static host, or open `dist/index.html` directly (the browser must allow storage on `file://` pages and the API service must permit those cross-origin requests).
+
+## Differences from upstream
+
+- Adds `manifest.json`, a service worker, and icons: installable to the desktop or home screen, with an offline shell; chat requests always go straight to the API and are never cached.
+- Settings gains a create-key → top-up → paste-back walkthrough and a guide for exporting history from the official app.
+- Branding, title, theme colour, and icons are DS Chat; UI components and the chat protocol are left as upstream.
 
 ## Getting started
 
 Install Node.js 22.12+ and pnpm, then run:
 
 ```sh
-git clone https://github.com/deepseek-ai/chat-demo.git
-cd chat-demo
+git clone https://github.com/hongshuxifan321/ds-chat.git
+cd ds-chat
 pnpm install
 pnpm dev
 ```

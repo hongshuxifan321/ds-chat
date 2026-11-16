@@ -28,6 +28,7 @@ import {
   type ThemePreference,
 } from '../../services/settings.js'
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
+import { PLATFORM_LINKS } from '../../services/links.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
@@ -64,6 +65,8 @@ const SettingsContent = () => {
   const historyImport = useHistoryImport()
   const historyDelete = useHistoryDelete()
   const replacingHistory = useChatStore((state) => state.importingHistory)
+  // 教程弹窗：充值指引与官方历史导出步骤共用一个开关
+  const [help, setHelp] = useState<HelpTopic | null>(null)
   const historyBusy = historyImport.busy || historyDelete.busy || replacingHistory
   return (
     <>
@@ -104,7 +107,12 @@ const SettingsContent = () => {
           ) : (
             <>
               <ApiKeyField editor={apiKeyEditor} />
-              <ImportHistory historyImport={historyImport} disabled={historyBusy} />
+              <BillingSetting onHelp={() => setHelp('topUp')} />
+              <ImportHistory
+                historyImport={historyImport}
+                disabled={historyBusy}
+                onExportHelp={() => setHelp('export')}
+              />
               <ExportHistory disabled={historyBusy} />
               <SettingCell
                 label={t('deleteAllSessions')}
@@ -128,6 +136,7 @@ const SettingsContent = () => {
       </Modal>
       {historyImport.file ? <ImportConfirm historyImport={historyImport} /> : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
+      {help ? <HelpModal topic={help} onClose={() => setHelp(null)} /> : null}
     </>
   )
 }
@@ -413,7 +422,7 @@ const SettingCell = ({
   className,
 }: {
   label: string
-  description?: string
+  description?: ReactNode
   status: Status
   action: ReactNode
   className?: string
@@ -465,13 +474,90 @@ const useHistoryImport = () => {
   return { file, busy, status, select: setFile, cancel: () => setFile(null), confirm }
 }
 
+/** 教程弹窗的内容：标题与步骤都是文案键，便于中英切换 */
+type HelpTopic = 'topUp' | 'export'
+
+const HELP_CONTENT: Record<HelpTopic, { title: TranslationKey; steps: TranslationKey[] }> = {
+  topUp: {
+    title: 'topUpHelpTitle',
+    steps: ['topUpHelpStep1', 'topUpHelpStep2', 'topUpHelpStep3', 'topUpHelpStep4'],
+  },
+  export: {
+    title: 'exportHelpTitle',
+    steps: ['exportHelpStep1', 'exportHelpStep2', 'exportHelpStep3', 'exportHelpStep4'],
+  },
+}
+
+/** 教程弹窗：编号步骤 + 底部关闭 */
+const HelpModal = ({ topic, onClose }: { topic: HelpTopic; onClose: () => void }) => {
+  const t = useTranslate()
+  const { title, steps } = HELP_CONTENT[topic]
+  return (
+    <Modal
+      title={t(title)}
+      onClose={onClose}
+      footer={
+        <Button variant="outlined" size="m" onClick={onClose}>
+          {t('close')}
+        </Button>
+      }
+    >
+      <ol className={styles.helpSteps}>
+        {steps.map((step) => (
+          <li key={step}>{t(step)}</li>
+        ))}
+      </ol>
+    </Modal>
+  )
+}
+
+/** 余额与充值：说明里带创建 Key 与充值教程入口，右侧直达充值页 */
+const BillingSetting = ({ onHelp }: { onHelp: () => void }) => {
+  const t = useTranslate()
+  return (
+    <SettingCell
+      label={t('billingTitle')}
+      description={
+        <>
+          {t('billingDescription')}{' '}
+          <a
+            className={styles.helpLink}
+            href={PLATFORM_LINKS.apiKeys}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('billingCreateKey')}
+          </a>
+          {' · '}
+          <button type="button" className={styles.helpLink} onClick={onHelp}>
+            {t('billingHowTo')}
+          </button>
+        </>
+      }
+      status={null}
+      action={
+        <Button
+          variant="outlined"
+          size="m"
+          className={styles.cellButton}
+          onClick={() => window.open(PLATFORM_LINKS.topUp, '_blank', 'noopener,noreferrer')}
+        >
+          {t('topUp')}
+        </Button>
+      }
+    />
+  )
+}
+
 /** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
 const ImportHistory = ({
   historyImport,
   disabled,
+  onExportHelp,
 }: {
   historyImport: ReturnType<typeof useHistoryImport>
   disabled: boolean
+  onExportHelp: () => void
 }) => {
   const t = useTranslate()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -479,7 +565,14 @@ const ImportHistory = ({
   return (
     <SettingCell
       label={t('historyImport')}
-      description={t('historyImportDescription')}
+      description={
+        <>
+          {t('historyImportDescription')}{' '}
+          <button type="button" className={styles.helpLink} onClick={onExportHelp}>
+            {t('exportHelpLink')}
+          </button>
+        </>
+      }
       status={historyImport.status}
       action={
         <>

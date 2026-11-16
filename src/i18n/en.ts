@@ -36,6 +36,18 @@ export const en = {
   continueGenerating: 'Continue',
   changeApiKey: 'Change API Key',
   topUp: 'Top up',
+  billingTitle: 'Balance and billing',
+  billingDescription:
+    'New accounts come with free credit. When it runs out, top up on the platform. With a zero balance, replies will ask you to top up.',
+  billingCreateKey: 'Create an API Key',
+  billingHowTo: 'How to top up?',
+  topUpHelpTitle: 'How to top up',
+  topUpHelpStep1:
+    'Open platform.deepseek.com and sign in with the same phone number as the DeepSeek app.',
+  topUpHelpStep2: 'Choose Top up on the left, pick an amount, and pay with Alipay or WeChat.',
+  topUpHelpStep3: 'After paying, the balance and usage appear on the Usage page.',
+  topUpHelpStep4:
+    'With a zero balance this app replies "Insufficient balance, please top up and retry".',
   messageSearchSummary: '1 web page',
   messageSearchSummaries: '{count} web pages',
   messageVersions: 'Message versions',
@@ -117,6 +129,13 @@ export const en = {
     'The uploaded chat history will replace all your current chats. Import anyway?',
   historyImportDescription:
     'Importing chat history replaces all local chats and attachments. Supports ZIP files exported from DeepSeek.',
+  exportHelpLink: 'How to export?',
+  exportHelpTitle: 'How to export your DeepSeek history',
+  exportHelpStep1: 'In the DeepSeek app or web app, open Settings → Data management.',
+  exportHelpStep2: 'Click Download next to Export all chats. You get a ZIP file.',
+  exportHelpStep3: 'The download link expires after 7 days. Click Re-export to get a new one.',
+  exportHelpStep4:
+    'Back here, click Upload and pick that ZIP. Importing replaces all local chats and attachments.',
   historyImportedOne: 'Imported 1 chat',
   historyImported: 'Imported {count} chats',
   historyImportFailed:

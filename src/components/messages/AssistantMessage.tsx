@@ -22,9 +22,8 @@ import {
   type MessageVersions,
   type SelectMessageVersion,
 } from './BranchSwitcher.js'
+import { PLATFORM_LINKS } from '../../services/links.js'
 import styles from './AssistantMessage.module.css'
-
-const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
 
 export const AssistantMessage = memo(function AssistantMessage({
   sessionId,
@@ -113,7 +112,7 @@ export const AssistantMessage = memo(function AssistantMessage({
                 {' '}
                 <a
                   className={styles.noticeAction}
-                  href={TOP_UP_URL}
+                  href={PLATFORM_LINKS.topUp}
                   target="_blank"
                   rel="noreferrer"
                 >

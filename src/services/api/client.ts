@@ -1,6 +1,6 @@
 import { translate, type TranslationMessage } from '../../i18n/index.js'
 import { readMessageEvent } from './parseEvent.js'
-import { readServerSentEvents } from './sse.js'
+import { ServerSentEventDecoder, readServerSentEvents, type ServerSentEvent } from './sse.js'
 import type {
   ApiErrorBody,
   CreateMessageRequest,
@@ -48,13 +48,18 @@ const isErrorBody = (value: unknown): value is ApiErrorBody =>
   'error' in value &&
   typeof (value as ApiErrorBody).error?.message === 'string'
 
+/** 非 SSE 响应只把开头一段当错误信息展示，避免把整段原始报文塞进气泡 */
+const SNIPPET_MAX = 200
+const summarize = (text: string): string =>
+  text.length > SNIPPET_MAX ? `${text.slice(0, SNIPPET_MAX)}…` : text
+
 const readErrorResponse = async (
   response: Response,
   kind: 'http' | 'protocol' = 'http',
   fallback = response.statusText
 ): Promise<ApiError> => {
   const text = await response.text().catch(() => '')
-  let message = text || fallback
+  let message = summarize(text) || fallback
   try {
     const body: unknown = JSON.parse(text)
     if (isErrorBody(body)) {
@@ -137,6 +142,40 @@ const hasFile = (body: CreateMessageRequest) =>
       message.content.some((block) => block.type === 'image' || block.type === 'document')
   )
 
+/** 把 SSE 事件流翻译成消息事件；错误帧直接抛出，无法解析的帧忽略 */
+async function* toMessageEvents(
+  events: AsyncIterable<ServerSentEvent>
+): AsyncGenerator<MessageStreamEvent> {
+  for await (const { event: eventName, data } of events) {
+    let payload: unknown
+    try {
+      payload = JSON.parse(data)
+    } catch {
+      if (eventName !== 'error') {
+        continue
+      }
+    }
+    if (isErrorBody(payload)) {
+      throw new ApiError('stream', payload.error.message)
+    }
+    if (eventName === 'error') {
+      throw new ApiError('stream', data)
+    }
+    const event = readMessageEvent(payload)
+    if (!event) {
+      continue
+    }
+    yield event
+  }
+}
+
+/** 拿不到流式响应体时整段读完再一次解析：失去逐字效果，但内容完整 */
+async function* readBufferedEvents(text: string): AsyncGenerator<ServerSentEvent> {
+  const decoder = new ServerSentEventDecoder()
+  yield* decoder.push(text)
+  yield* decoder.end()
+}
+
 /**
  * POST /anthropic/v1/messages（stream: true），逐个产出流式事件，收到 message_stop 时结束。
  * ping、保活注释与无法解析的内容不产出；中止请求时抛出 signal 的 AbortError。
@@ -157,28 +196,22 @@ export async function* streamMessage(
     signal,
   })
   const contentType = response.headers.get('Content-Type') ?? ''
-  if (!response.body || !contentType.includes('text/event-stream')) {
+  if (response.body && !contentType.includes('text/event-stream')) {
     throw await readErrorResponse(response, 'protocol', '')
   }
-  for await (const { event: eventName, data } of readServerSentEvents(response.body, signal)) {
-    let payload: unknown
-    try {
-      payload = JSON.parse(data)
-    } catch {
-      if (eventName !== 'error') {
-        continue
-      }
+  let events: AsyncIterable<ServerSentEvent>
+  if (response.body) {
+    events = readServerSentEvents(response.body, signal)
+  } else {
+    // 部分安卓内置浏览器与旧 WebView 拿不到 response.body：一次性读完再解析，
+    // 否则整段原始报文会被当成错误信息展示，用户花了钱却看不到回答。
+    const text = await response.text()
+    if (!text.includes('data:')) {
+      throw new ApiError('protocol', summarize(text) || response.statusText, response.status)
     }
-    if (isErrorBody(payload)) {
-      throw new ApiError('stream', payload.error.message)
-    }
-    if (eventName === 'error') {
-      throw new ApiError('stream', data)
-    }
-    const event = readMessageEvent(payload)
-    if (!event) {
-      continue
-    }
+    events = readBufferedEvents(text)
+  }
+  for await (const event of toMessageEvents(events)) {
     yield event
     if (event.type === 'message_stop') {
       return

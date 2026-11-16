@@ -1,7 +1,4 @@
 export const zh = {
-  greetingMorning: '早上好，今天有什么计划？',
-  greetingAfternoon: '下午好，今天有什么计划？',
-  greetingEvening: '晚上好，今天有什么计划？',
   welcomeMessageChat250808: '今天有什么可以帮到你？',
   contentCaveat: '内容由 AI 生成，请仔细甄别',
   expandSiderbarButton: '打开边栏',
@@ -56,8 +53,8 @@ export const zh = {
   messageSearchNoResult: '未搜索到相关内容',
   toolSearch1Result: '搜索到 1 个网页',
   toolSearchResults: '搜索到 {count} 个网页',
-  messageSearchResult: '搜索到 1 个网页',
-  messageSearchResults: '搜索到 {count} 个网页',
+  messageSearchResult: '已阅读 1 个网页',
+  messageSearchResults: '已阅读 {count} 个网页',
   toolOpenOneIntro: '浏览 1 个页面',
   toolOpensIntro: '浏览 {count} 个页面',
   toolOpenFail: '浏览页面失败',

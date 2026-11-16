@@ -1,6 +1,6 @@
 {
-  "name": "BYOK Chat",
-  "short_name": "BYOK",
+  "name": "DS Chat",
+  "short_name": "DS",
   "description": "自带 API Key 的 DeepSeek 对话客户端。非官方项目，与深度求索无关。",
   "lang": "zh-CN",
   "start_url": "./",

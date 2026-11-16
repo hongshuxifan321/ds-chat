@@ -11,3 +11,4 @@ build/
 !.env.example
 tmp/
 package-lock.json
+preview/

@@ -62,12 +62,14 @@
 ## 五、部署流程
 
 1. 在 GitHub 创建公开仓库 `ds-chat`（不初始化 README）
-2. 关联远端并推送
+2. **先启用 Pages**：仓库 → Settings → Pages → Source 选 **GitHub Actions**
+   顺序不能颠倒：工作流里的 `actions/configure-pages` 默认不代为启用站点（`enablement` 默认 `false`），
+   仓库尚未启用 Pages 时该步骤会失败，首次 Actions 白跑一轮。
+3. 关联远端并推送
    ```sh
    git remote add mine https://github.com/hongshuxifan321/ds-chat.git
    git push -u mine pwa:main
    ```
-3. 仓库 → Settings → Pages → Source 选 **GitHub Actions**
 4. 等 Actions 跑完（约 2–3 分钟）
 5. 访问 `https://hongshuxifan321.github.io/ds-chat/`
 6. 设置里填自己的 Key，跑一轮对话验证
@@ -112,7 +114,7 @@ git push mine main
 | 商标侵权 | 被下架、被投诉 | 中性名 DS Chat、中性图标、README 声明非官方 |
 | Key 被盗 / 钓鱼站 | 用户损失 | README 警告；建议用限额 Key；声明唯一官方地址 |
 | 上游改协议 | 功能失效 | 跟随上游合并，不自行修改协议层 |
-| GitHub Pages 无 SLA | 短时不可用 | 客户端有缓存，短期无感；离线包兜底 |
+| GitHub Pages 无 SLA | 短时不可用 | 客户端有缓存，短期无感；离线包兜底（尚未验证） |
 | 官方出 C 端付费 | 需求消失 | 项目定位为工具，不押注商业价值 |
 
 ## 九、迭代路线
@@ -120,7 +122,7 @@ git push mine main
 | 阶段 | 内容 | 工作量 |
 |---|---|---|
 | P0 | 上线可用的 PWA（本次） | 30 分钟 |
-| P1 | 首启引导（三步开 Key）+ 成本估算器 + 品牌文案 | 半天 |
+| P1 | 成本估算器 + 品牌文案（三步开 Key 的引导已完成） | 半天 |
 | P2 | Release 附离线包 + 安装引导（iOS/Android 分别写） | 半天 |
 | P3 | 自定义域名 / 双入口（可选） | 视情况 |
 
@@ -136,6 +138,6 @@ P1 的成本估算器是转化关键：用户不知道 token 怎么算，填"每
 
 ## 十一、推送前审计（2026-11-16）
 
-已核：密钥与个人信息的全历史扫描（无）、跟踪文件 187 个（无构建产物与依赖）、import 大小写 380 条全部解析、lockfile 声明 28/28 一致、CI action pin 6/6 校验、子路径资源路径、service worker 语法。
+已核：密钥与个人信息的全历史扫描（无）、跟踪文件 179 个（无构建产物与依赖）、import 大小写 380 条全部解析、lockfile 声明 28/28 一致、CI action pin 6/6 校验、子路径资源路径、service worker 语法、客户端无路由（Pages 无需 404 重写）、`tsconfig` 已设 `noEmit`（`pnpm type` 不会往 `src/` 吐 js）。
 
 未能在本机验证：`pnpm install --frozen-lockfile`（pnpm store 锁被拒）、移动端渲染、`file://` 双击可用性、`*.github.io` origin 的 CORS。

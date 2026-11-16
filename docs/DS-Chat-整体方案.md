@@ -37,7 +37,7 @@
 ├── localStorage ← API Key、设置
 ├── IndexedDB ← 会话、消息分支、附件原件
 └── 直连 https://api.deepseek.com/anthropic/v1/messages
-        （已实测：CORS 允许任意 github.io origin）
+        （实测：`127.0.0.1:5750`、`localhost:8090`、`192.168.3.57:8090` 均被允许；`*.github.io` 待上线后验证）
 ```
 
 **Service Worker 策略**
@@ -52,7 +52,7 @@
 
 | 项 | 方案 |
 |---|---|
-| 仓库名 | `ds-chat`（待确认） |
+| 仓库名 | `ds-chat` |
 | 可见性 | 公开（免费 Pages 必须公开；MIT 项目也无隐藏必要） |
 | 主分支 | `main` |
 | 开发分支 | `pwa`（当前改动所在，推送时合并进 main） |
@@ -73,7 +73,7 @@
 6. 设置里填自己的 Key，跑一轮对话验证
 
 CI 会依次执行：`pnpm install --frozen-lockfile` → `pnpm type` → `pnpm lint` → `pnpm build` → 上传 `dist` → 部署。
-本地已全部预跑通过（tsc 0 error、oxlint 0 warning、构建成功），依赖未变，CI 不会因 lockfile 失败。
+本地已预跑通过：tsc 0 error、oxlint 0 warning、构建成功；lockfile 的 28 条依赖声明与 `package.json` 静态比对一致。`pnpm install --frozen-lockfile` 未能在本机复现（pnpm store 锁被拒），CI 首跑结果以 Actions 日志为准。
 
 ## 六、上线验证清单
 
@@ -108,7 +108,7 @@ git push mine main
 
 | 风险 | 影响 | 对策 |
 |---|---|---|
-| 国内访问不稳定 | 目标用户打不开 | 接受；Release 附 `dist.zip`，解压双击即用 |
+| 国内访问不稳定 | 目标用户打不开 | 接受；客户端有缓存，短期无感。离线包需先验证 `file://` 下 API 跨域是否可用，未验证前不承诺 |
 | 商标侵权 | 被下架、被投诉 | 中性名 DS Chat、中性图标、README 声明非官方 |
 | Key 被盗 / 钓鱼站 | 用户损失 | README 警告；建议用限额 Key；声明唯一官方地址 |
 | 上游改协议 | 功能失效 | 跟随上游合并，不自行修改协议层 |
@@ -134,9 +134,8 @@ P1 的成本估算器是转化关键：用户不知道 token 怎么算，填"每
 - 上线时间：约 30 分钟（含 Actions 排队）
 - 维护：跟随上游同步，每次 10 分钟
 
-## 十一、待确认
+## 十一、推送前审计（2026-11-16）
 
-1. 仓库名用 `ds-chat`，还是你另起一个？
-2. 现在就推送到 `main` 并开启 Pages？
+已核：密钥与个人信息的全历史扫描（无）、跟踪文件 187 个（无构建产物与依赖）、import 大小写 380 条全部解析、lockfile 声明 28/28 一致、CI action pin 6/6 校验、子路径资源路径、service worker 语法。
 
-确认后我执行：建仓 → 推送 → 开 Pages → 跑完验证清单 → 把线上地址和截图给你。
+未能在本机验证：`pnpm install --frozen-lockfile`（pnpm store 锁被拒）、移动端渲染、`file://` 双击可用性、`*.github.io` origin 的 CORS。

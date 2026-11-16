@@ -13,7 +13,7 @@ DS-Chat/
 ├── src/             应用源码（React + rspack）
 ├── public/          PWA 资源：manifest、sw.js、图标
 ├── scripts/         图标生成、本地预览服务器
-├── docs/            方案、实验记录、图标预览
+├── docs/            方案与文档索引
 ├── preview/         构建产物 + 启动预览.cmd（不纳入 git）
 ├── .github/         Pages 部署工作流（沿用上游）
 ├── dist/            构建输出（不纳入 git）
@@ -52,5 +52,7 @@ DS-Chat/
 
 ## 当前状态
 
-- PWA 已完成：manifest、service worker、图标、离线壳、子路径部署验证
-- 待办：UI 对齐官方网页端；GitHub Pages 尚未发布
+- PWA 已完成：manifest、service worker、图标、离线壳
+- 设置页有三步引导（创建 Key → 充值 → 回填）与两个教程弹窗
+- 子路径部署只做了静态检查（相对路径、manifest scope），线上未验证
+- 待办：UI 对齐官方网页端（前一轮已尝试并撤回，等重新设计）；GitHub Pages 尚未发布

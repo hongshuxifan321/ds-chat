@@ -131,6 +131,14 @@ export const zh = {
   exportHelpStep3: '下载链接 7 天后过期，过期后回该页面点「重新导出」即可。',
   exportHelpStep4:
     '回到本应用的「设置 → 数据管理」，点「上传」选择该 ZIP。导入会覆盖本地全部对话与附件。',
+  historyImporting: '导入中…',
+  historyImportingTitle: '正在导入历史对话',
+  historyImportingKeepAwake:
+    '请保持屏幕常亮，不要切换到后台或锁屏。导入在本页面进行，页面被挂起就会中断。',
+  historyImportingProgress: '已处理 {count} 个对话',
+  historyImportInterrupted:
+    '导入被中断，可能因为页面切到了后台或屏幕自动锁定。请保持此页面在前台后重新导入。',
+  historyImportNoSpace: '本地存储空间不足，导入失败。请清理浏览器存储后重试。',
   historyImportedOne: '已导入 1 个对话',
   historyImported: '已导入 {count} 个对话',
   historyImportFailed:

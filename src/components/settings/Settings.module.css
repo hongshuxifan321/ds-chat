@@ -416,6 +416,11 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.importProgress {
+  color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
 .deleteConfirm {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;

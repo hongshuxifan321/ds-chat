@@ -143,6 +143,15 @@ export const en = {
   exportHelpStep3: 'The download link expires after 7 days. Click Re-export to get a new one.',
   exportHelpStep4:
     'Back here, click Upload and pick that ZIP. Importing replaces all local chats and attachments.',
+  historyImporting: 'Importing…',
+  historyImportingTitle: 'Importing chats',
+  historyImportingKeepAwake:
+    'Keep the screen on and stay on this page. The import runs here, and it stops if the page is suspended.',
+  historyImportingProgress: '{count} chats processed',
+  historyImportInterrupted:
+    'Import was interrupted, possibly because the page went to the background or the screen locked. Keep this page in the foreground and import again.',
+  historyImportNoSpace:
+    'Not enough local storage. Free up browser storage and try the import again.',
   historyImportedOne: 'Imported 1 chat',
   historyImported: 'Imported {count} chats',
   historyImportFailed:

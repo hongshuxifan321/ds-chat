@@ -111,6 +111,7 @@ const SettingsContent = () => {
               <ImportHistory
                 historyImport={historyImport}
                 disabled={historyBusy}
+                busy={historyImport.busy}
                 onExportHelp={() => setHelp('export')}
               />
               <ExportHistory disabled={historyBusy} />
@@ -135,6 +136,7 @@ const SettingsContent = () => {
         </div>
       </Modal>
       {historyImport.file ? <ImportConfirm historyImport={historyImport} /> : null}
+      {historyImport.busy ? <ImportProgress historyImport={historyImport} /> : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
       {help ? <HelpModal topic={help} onClose={() => setHelp(null)} /> : null}
     </>
@@ -351,6 +353,32 @@ const ImportConfirm = ({
   )
 }
 
+/**
+ * 导入期间的进度弹窗：交代必须保持前台，并实时显示已处理的会话数。
+ * 不可关闭——关闭只会让人以为导入停了，实际仍在跑。
+ */
+const ImportProgress = ({
+  historyImport,
+}: {
+  historyImport: ReturnType<typeof useHistoryImport>
+}) => {
+  const t = useTranslate()
+  return (
+    <Modal
+      title={t('historyImportingTitle')}
+      className={styles.importConfirm}
+      onClose={() => {}}
+      footer={
+        <div className={styles.importProgress}>
+          {t('historyImportingProgress', { count: historyImport.progress })}
+        </div>
+      }
+    >
+      <div className={styles.importConfirmText}>{t('historyImportingKeepAwake')}</div>
+    </Modal>
+  )
+}
+
 const themeOptions: { value: ThemePreference; label: TranslationKey; icon: ReactNode }[] = [
   {
     value: 'light',
@@ -445,33 +473,90 @@ const SettingCell = ({
   )
 }
 
+/** 屏幕常亮句柄；不支持时返回 null，不影响导入 */
+type WakeSentinel = { release(): Promise<void> }
+
+/** 导入期间申请屏幕常亮：手机自动锁屏会挂起页面，正在跑的大事务会被中止 */
+const requestWakeLock = async (): Promise<WakeSentinel | null> => {
+  const api = (navigator as Navigator & {
+    wakeLock?: { request(type: 'screen'): Promise<WakeSentinel> }
+  }).wakeLock
+  if (!api) {
+    return null
+  }
+  try {
+    return await api.request('screen')
+  } catch {
+    return null
+  }
+}
+
+const isQuotaError = (error: unknown): boolean =>
+  error instanceof DOMException &&
+  (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+
 /** 选文件后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
 const useHistoryImport = () => {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState<Status>(null)
   const importing = useRef(false)
+  const hidden = useRef(false)
+  const wakeLock = useRef<WakeSentinel | null>(null)
+
+  const releaseWakeLock = () => {
+    void wakeLock.current?.release().catch(() => {})
+    wakeLock.current = null
+  }
 
   const confirm = async () => {
     if (!file || importing.current) {
       return
     }
     importing.current = true
+    hidden.current = false
     setFile(null)
     setBusy(true)
+    setProgress(0)
     setStatus(null)
+    void requestWakeLock().then((sentinel) => {
+      // 申请是异步的，可能导入已经先结束了
+      if (importing.current) {
+        wakeLock.current = sentinel
+      } else {
+        void sentinel?.release().catch(() => {})
+      }
+    })
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') {
+        hidden.current = true
+      }
+    }
+    document.addEventListener('visibilitychange', onHidden)
     try {
-      const count = await importHistory(file)
+      const count = await importHistory(file, setProgress)
       setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
-    } catch {
-      setStatus({ key: 'historyImportFailed', error: true })
+    } catch (error) {
+      // 先看是不是切后台导致的中断，再区分文件问题与存储空间问题
+      setStatus(
+        hidden.current
+          ? { key: 'historyImportInterrupted', error: true }
+          : isQuotaError(error)
+            ? { key: 'historyImportNoSpace', error: true }
+            : error instanceof BackupError
+              ? { key: error.key, error: true }
+              : { key: 'historyImportFailed', error: true }
+      )
     } finally {
+      document.removeEventListener('visibilitychange', onHidden)
+      releaseWakeLock()
       importing.current = false
       setBusy(false)
     }
   }
 
-  return { file, busy, status, select: setFile, cancel: () => setFile(null), confirm }
+  return { file, busy, progress, status, select: setFile, cancel: () => setFile(null), confirm }
 }
 
 /** 教程弹窗的内容：标题与步骤都是文案键，便于中英切换 */
@@ -568,10 +653,12 @@ const SetupSteps = ({ onTopUpHelp }: { onTopUpHelp: () => void }) => {
 const ImportHistory = ({
   historyImport,
   disabled,
+  busy,
   onExportHelp,
 }: {
   historyImport: ReturnType<typeof useHistoryImport>
   disabled: boolean
+  busy: boolean
   onExportHelp: () => void
 }) => {
   const t = useTranslate()
@@ -599,7 +686,7 @@ const ImportHistory = ({
             onClick={() => inputRef.current?.click()}
           >
             <IconUploadOutline14 />
-            {t('upload')}
+            {t(busy ? 'historyImporting' : 'upload')}
           </Button>
           <input
             ref={inputRef}

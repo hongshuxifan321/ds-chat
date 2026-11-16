@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-# DeepSeek 品牌蓝
+# DeepSeek 品牌蓝：反色版 —— 白底 + 蓝色字母（与官方标识同配色）
 BLUE = (77, 107, 254, 255)
 WHITE = (255, 255, 255, 255)
 S = 512
@@ -21,7 +21,7 @@ if FONT_PATH is None:
 def draw_icon(size: int, corner: int, k: float, text: str = "DS") -> Image.Image:
     img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, 0, S - 1, S - 1], radius=corner, fill=BLUE)
+    d.rounded_rectangle([0, 0, S - 1, S - 1], radius=corner, fill=WHITE)
 
     # 先按大字号量出字形尺寸，再缩到目标宽度，保证居中且各尺寸一致
     probe = ImageFont.truetype(FONT_PATH, 400)
@@ -35,7 +35,7 @@ def draw_icon(size: int, corner: int, k: float, text: str = "DS") -> Image.Image
     h = box[3] - box[1]
     x = (S - w) / 2 - box[0]
     y = (S - h) / 2 - box[1]
-    d.text((x, y), text, font=font, fill=WHITE)
+    d.text((x, y), text, font=font, fill=BLUE)
     return img.resize((size, size), Image.LANCZOS)
 
 

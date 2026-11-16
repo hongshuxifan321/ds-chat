@@ -1,5 +1,5 @@
 /* BYOK Chat service worker：只缓存同源静态资源，对话请求一律直连 API。 */
-const CACHE = 'byok-shell-v1'
+const CACHE = 'byok-shell-v2'
 const SHELL = ['./', './index.html', './manifest.json']
 
 self.addEventListener('install', (event) => {

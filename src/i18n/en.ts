@@ -36,11 +36,18 @@ export const en = {
   continueGenerating: 'Continue',
   changeApiKey: 'Change API Key',
   topUp: 'Top up',
-  billingTitle: 'Balance and billing',
-  billingDescription:
-    'New accounts come with free credit. When it runs out, top up on the platform. With a zero balance, replies will ask you to top up.',
-  billingCreateKey: 'Create an API Key',
   billingHowTo: 'How to top up?',
+  setupStepCreateTitle: '1. Create an API Key',
+  setupStepCreateDesc:
+    'Open the platform and click Create on the API Keys page. The key is shown in full only once, so copy it right away.',
+  setupStepCreateAction: 'Create',
+  setupStepTopUpTitle: '2. Top up',
+  setupStepTopUpDesc:
+    'New accounts come with free credit. When it runs out, pick an amount on the Top up page and pay with Alipay or WeChat.',
+  setupStepTopUpAction: 'Top up',
+  setupStepBackTitle: '3. Paste it back here',
+  setupStepBackDesc:
+    'Paste the key into the "Enter API Key" field above and click Confirm. You can start chatting right away.',
   topUpHelpTitle: 'How to top up',
   topUpHelpStep1:
     'Open platform.deepseek.com and sign in with the same phone number as the DeepSeek app.',

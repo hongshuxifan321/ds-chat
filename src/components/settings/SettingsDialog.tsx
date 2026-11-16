@@ -107,7 +107,7 @@ const SettingsContent = () => {
           ) : (
             <>
               <ApiKeyField editor={apiKeyEditor} />
-              <BillingSetting onHelp={() => setHelp('topUp')} />
+              <SetupSteps onTopUpHelp={() => setHelp('topUp')} />
               <ImportHistory
                 historyImport={historyImport}
                 disabled={historyBusy}
@@ -511,41 +511,56 @@ const HelpModal = ({ topic, onClose }: { topic: HelpTopic; onClose: () => void }
   )
 }
 
-/** 余额与充值：说明里带创建 Key 与充值教程入口，右侧直达充值页 */
-const BillingSetting = ({ onHelp }: { onHelp: () => void }) => {
+/** 首次使用的三步引导：创建 Key → 充值 → 回填到上方输入框 */
+const SetupSteps = ({ onTopUpHelp }: { onTopUpHelp: () => void }) => {
   const t = useTranslate()
+  const open = (url: string) => window.open(url, '_blank', 'noopener,noreferrer')
   return (
-    <SettingCell
-      label={t('billingTitle')}
-      description={
-        <>
-          {t('billingDescription')}{' '}
-          <a
-            className={styles.helpLink}
-            href={PLATFORM_LINKS.apiKeys}
-            target="_blank"
-            rel="noreferrer"
+    <>
+      <SettingCell
+        label={t('setupStepCreateTitle')}
+        description={t('setupStepCreateDesc')}
+        status={null}
+        action={
+          <Button
+            variant="outlined"
+            size="m"
+            className={styles.cellButton}
+            onClick={() => open(PLATFORM_LINKS.apiKeys)}
           >
-            {t('billingCreateKey')}
-          </a>
-          {' · '}
-          <button type="button" className={styles.helpLink} onClick={onHelp}>
-            {t('billingHowTo')}
-          </button>
-        </>
-      }
-      status={null}
-      action={
-        <Button
-          variant="outlined"
-          size="m"
-          className={styles.cellButton}
-          onClick={() => window.open(PLATFORM_LINKS.topUp, '_blank', 'noopener,noreferrer')}
-        >
-          {t('topUp')}
-        </Button>
-      }
-    />
+            {t('setupStepCreateAction')}
+          </Button>
+        }
+      />
+      <SettingCell
+        label={t('setupStepTopUpTitle')}
+        description={
+          <>
+            {t('setupStepTopUpDesc')}{' '}
+            <button type="button" className={styles.helpLink} onClick={onTopUpHelp}>
+              {t('billingHowTo')}
+            </button>
+          </>
+        }
+        status={null}
+        action={
+          <Button
+            variant="outlined"
+            size="m"
+            className={styles.cellButton}
+            onClick={() => open(PLATFORM_LINKS.topUp)}
+          >
+            {t('setupStepTopUpAction')}
+          </Button>
+        }
+      />
+      <SettingCell
+        label={t('setupStepBackTitle')}
+        description={t('setupStepBackDesc')}
+        status={null}
+        action={null}
+      />
+    </>
   )
 }
 

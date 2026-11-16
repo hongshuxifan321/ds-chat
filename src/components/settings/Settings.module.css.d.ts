@@ -32,6 +32,8 @@ declare const styles: {
   readonly "importConfirm": string;
   readonly "importConfirmText": string;
   readonly "importProgress": string;
+  readonly "importProgressBar": string;
+  readonly "importProgressFill": string;
   readonly "deleteConfirm": string;
   readonly "deleteActions": string;
 };

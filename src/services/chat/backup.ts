@@ -45,7 +45,7 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
  */
 export const importHistory = (
   file: File,
-  onProgress?: (done: number) => void
+  onProgress?: (done: number, total: number) => void
 ): Promise<number> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')

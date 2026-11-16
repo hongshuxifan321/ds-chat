@@ -421,6 +421,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+.importProgressBar {
+  height: 4px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 2px;
+  background-color: var(--dsw-alias-border-l2);
+}
+
+.importProgressFill {
+  height: 100%;
+  border-radius: 2px;
+  background-color: var(--dsw-alias-brand-primary);
+  transition: width 0.2s ease;
+}
+
 .deleteConfirm {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;

@@ -147,7 +147,8 @@ export const en = {
   historyImportingTitle: 'Importing chats',
   historyImportingKeepAwake:
     'Keep the screen on and stay on this page. The import runs here, and it stops if the page is suspended.',
-  historyImportingProgress: '{count} chats processed',
+  historyImportingPreparing: 'Reading archive…',
+  historyImportingProgress: '{done} / {total} chats processed',
   historyImportInterrupted:
     'Import was interrupted, possibly because the page went to the background or the screen locked. Keep this page in the foreground and import again.',
   historyImportNoSpace:

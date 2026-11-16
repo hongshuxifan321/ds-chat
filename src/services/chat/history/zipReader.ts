@@ -237,9 +237,15 @@ export type ArchiveEntry = {
 /**
  * 按条目在文件中的物理顺序逐条、逐块解压，跳过目录条目。
  * 调用方必须消费完当前条目的数据，再请求下一个条目。
+ * `onDirectory` 在解析完中央目录、产出任何条目之前回调一次全部条目路径，
+ * 供调用方先算出总数（导入进度需要分母）而不必再解析一遍中央目录。
  */
-export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
+export async function* readArchive(
+  file: File,
+  onDirectory?: (paths: string[]) => void
+): AsyncGenerator<ArchiveEntry> {
   const directory = await readDirectory(file)
+  onDirectory?.(directory.entries.map((entry) => entry.path))
   for (const [index, entry] of directory.entries.entries()) {
     const boundary = directory.entries[index + 1]?.offset ?? directory.offset
     const start = await readEntryOffset(file, entry, boundary)

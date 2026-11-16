@@ -363,6 +363,10 @@ const ImportProgress = ({
   historyImport: ReturnType<typeof useHistoryImport>
 }) => {
   const t = useTranslate()
+  const progress = historyImport.progress
+  const total = progress?.total ?? 0
+  const percent =
+    progress && total > 0 ? Math.min(100, Math.round((progress.done / total) * 100)) : 0
   return (
     <Modal
       title={t('historyImportingTitle')}
@@ -370,11 +374,22 @@ const ImportProgress = ({
       onClose={() => {}}
       footer={
         <div className={styles.importProgress}>
-          {t('historyImportingProgress', { count: historyImport.progress })}
+          {progress && total > 0
+            ? t('historyImportingProgress', { done: progress.done, total })
+            : t('historyImportingPreparing')}
         </div>
       }
     >
       <div className={styles.importConfirmText}>{t('historyImportingKeepAwake')}</div>
+      <div
+        className={styles.importProgressBar}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+      >
+        <div className={styles.importProgressFill} style={{ width: `${percent}%` }} />
+      </div>
     </Modal>
   )
 }
@@ -473,6 +488,9 @@ const SettingCell = ({
   )
 }
 
+/** 导入进度；null 表示还没算出总数（正在读归档目录） */
+type ImportProgressState = { done: number; total: number }
+
 /** 屏幕常亮句柄；不支持时返回 null，不影响导入 */
 type WakeSentinel = { release(): Promise<void> }
 
@@ -499,7 +517,7 @@ const isQuotaError = (error: unknown): boolean =>
 const useHistoryImport = () => {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [progress, setProgress] = useState<ImportProgressState | null>(null)
   const [status, setStatus] = useState<Status>(null)
   const importing = useRef(false)
   const hidden = useRef(false)
@@ -518,7 +536,7 @@ const useHistoryImport = () => {
     hidden.current = false
     setFile(null)
     setBusy(true)
-    setProgress(0)
+    setProgress(null)
     setStatus(null)
     void requestWakeLock().then((sentinel) => {
       // 申请是异步的，可能导入已经先结束了
@@ -535,7 +553,7 @@ const useHistoryImport = () => {
     }
     document.addEventListener('visibilitychange', onHidden)
     try {
-      const count = await importHistory(file, setProgress)
+      const count = await importHistory(file, (done, total) => setProgress({ done, total }))
       setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
     } catch (error) {
       // 先看是不是切后台导致的中断，再区分文件问题与存储空间问题

@@ -50,6 +50,9 @@ const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
   }
 }
 
+/** 进度回报的最小间隔：太密集会让大归档的时间花在界面重绘上 */
+const PROGRESS_INTERVAL_MS = 100
+
 /**
  * 检查 ZIP 格式、首个 manifest 条目及格式版本。
  * 校验失败时保留正在生成的回答和现有暂存数据。
@@ -77,16 +80,32 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
- * `onProgress` 每写出一批会话回报一次已处理数量，供界面显示进度。
+ * `onProgress` 回报已处理会话数与会话总数，供界面显示进度。
  */
 export const importArchive = async (
   file: File,
-  onProgress?: (done: number) => void
+  onProgress?: (done: number, total: number) => void
 ): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
   const imported = new Set<string>()
+  /** 会话总数，读中央目录得到；0 表示还没算出来 */
+  let total = 0
+  let lastReport = 0
+  /**
+   * 界面既要有「在动」的反馈，又不能被几千个会话刷爆：
+   * 首个与末个必报，其余最多每 100ms 报一次。
+   * 早先按「每 10 个」回报，少于 10 个对话的归档会整段显示 0。
+   */
+  const report = (force = false) => {
+    const now = Date.now()
+    if (!force && now - lastReport < PROGRESS_INTERVAL_MS) {
+      return
+    }
+    lastReport = now
+    onProgress?.(imported.size, total)
+  }
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
   const stored = new Map<string, string>()
@@ -106,7 +125,10 @@ export const importArchive = async (
   }
 
   try {
-    for await (const entry of readArchive(file)) {
+    // 中央目录解析完先算出会话总数，进度才有分母（复用同一次解析，不多读一遍）。
+    for await (const entry of readArchive(file, (paths) => {
+      total = paths.filter((path) => parseSessionPath(path) !== null).length
+    })) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
       if (!manifest) {
@@ -129,10 +151,7 @@ export const importArchive = async (
           images.set(imagePath, id)
         }
         await db.addStagingSession(local.session)
-        // 每 10 个回报一次，避免大归档频繁触发界面重绘
-        if (imported.size % 10 === 0) {
-          onProgress?.(imported.size)
-        }
+        report(imported.size === 1 || imported.size === total)
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
       } else if (
@@ -163,6 +182,7 @@ export const importArchive = async (
   ) {
     fail('backupIncomplete')
   }
-  onProgress?.(imported.size)
+  // 会话全部写完，先把进度顶到终点：回填图片 MIME 可能还要一会儿
+  report(true)
   await db.updateStagingFileTypes(stored)
 }

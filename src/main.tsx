@@ -9,3 +9,16 @@ ensureKatex()
 setupTheme()
 
 createRoot(document.getElementById('root') as HTMLElement).render(<App />)
+
+/** 生产构建才注册 service worker：开发服务器上注册会缓存旧资源，干扰调试。 */
+const canUseSW =
+  'serviceWorker' in navigator &&
+  (location.protocol === 'https:' ||
+    location.hostname === 'localhost' ||
+    location.hostname === '127.0.0.1')
+
+if (process.env.NODE_ENV === 'production' && canUseSW) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {})
+  })
+}

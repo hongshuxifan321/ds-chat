@@ -1,6 +1,13 @@
-# chat-demo
+# chat-demo（PWA 分支）
 
 [English](README.md) | 简体中文
+
+> **这是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的派生分支，改成了可安装的 PWA，非 DeepSeek 官方产品，与深度求索无关。** 原项目 MIT 许可，版权归 DeepSeek，许可证原文见 [LICENSE](LICENSE)。
+>
+> - 部署：推到自己的 GitHub 仓库 → Settings → Pages → Source 选 **GitHub Actions** → 推送到 `main` 自动构建发布。
+> - 使用：打开页面 → 设置 → 填自己的 DeepSeek API Key；也可以“添加到主屏幕”当 App 用。
+> - 注意：Key 存在浏览器 `localStorage`，页面由公共仓库托管，请勿使用主账号的 Key，请自行评估篡改与钓鱼风险。
+> - 限制：GitHub Pages 在中国大陆访问不稳定，必要时用 Cloudflare Pages 再挂一份。
 
 基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
 

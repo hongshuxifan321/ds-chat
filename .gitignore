@@ -2,6 +2,7 @@ node_modules/
 dist/
 build/
 .pnpm-store/
+.npm-cache/
 .cache/
 *.log
 .DS_Store
@@ -9,3 +10,4 @@ build/
 .env.*
 !.env.example
 tmp/
+package-lock.json

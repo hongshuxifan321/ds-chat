@@ -103,6 +103,8 @@ export const zh = {
   messageThinking: '正在思考',
   backupInvalidJson: '文件不是有效的 JSON',
   backupUnrecognized: '无法识别该文件，请选择 DeepSeek 导出的历史对话 ZIP 文件',
+  backupInsideArchive:
+    '你选的是压缩包里的文件。请返回上一级，选中整个 .zip 压缩包再导入。',
   backupNewerVersion: '文件版本过新，请升级后再导入',
   backupInvalidVersion: '文件版本无效，无法导入',
   backupIncomplete: '文件内容不完整，无法导入',
@@ -133,7 +135,8 @@ export const zh = {
   historyImportConfirm: '确认导入',
   historyImportConfirmTitle: '确认导入历史对话？',
   historyImportConfirmDescription: '上传的历史对话会覆盖当前所有对话记录，是否确认导入？',
-  historyImportDescription: '导入历史对话会覆盖全部本地对话和附件，支持 DeepSeek 导出的 ZIP 文件。',
+  historyImportDescription:
+    '导入历史对话会覆盖全部本地对话和附件，支持 DeepSeek 导出的 ZIP 文件。iPhone 上选的是整份 .zip，不是解压后的文件夹。',
   exportHelpLink: '怎么导出？',
   exportHelpTitle: '如何导出官方历史对话',
   exportHelpStep1: '网页版打开 chat.deepseek.com 并登录；用 App 也可以，只是菜单位置不同。',
@@ -142,7 +145,7 @@ export const zh = {
   exportHelpStep3:
     '点「导出所有历史对话」右边的「下载」，得到一个 ZIP，文件名类似 deepseek_data-2026-11-17.zip。下载链接 7 天后过期，过期回这一页点「重新导出」。',
   exportHelpStep4:
-    '回到本应用的「设置 → 数据管理」，点「导入历史对话」右边的「上传」，选那个 ZIP。导入会覆盖本地全部对话与附件。',
+    '回到本应用的「设置 → 数据管理」，点「导入历史对话」右边的「上传」，选那个 ZIP。导入会覆盖本地全部对话与附件。iPhone 上点 ZIP 如果变成了展开内容，返回上一级、选中整份 .zip 再点「打开」。',
   historyImporting: '导入中…',
   historyImportingTitle: '正在导入历史对话',
   historyImportingKeepAwake:
@@ -157,7 +160,7 @@ export const zh = {
   historyImported: '已导入 {count} 个对话',
   historyImportedPartial: '已导入 {count} 个对话，{skipped} 个结构异常已跳过',
   historyImportFailed:
-    '文件导入失败，可能是文件格式错误或使用了旧版的对话导出 ZIP 文件，请前往 DeepSeek 重新导出历史对话文件后再次导入。',
+    '文件读取失败：可能是文件已损坏、下载不完整，或选的不是 DeepSeek 导出的历史对话 ZIP。请重新导出一份再导入。',
   historyExportFailed: '导出失败：{message}',
   exportAllLabel: '导出所有历史对话',
   historyExportDescription:

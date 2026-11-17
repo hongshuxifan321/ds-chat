@@ -59,7 +59,8 @@ const PROGRESS_INTERVAL_MS = 100
  */
 export const checkArchiveFormat = async (file: File): Promise<void> => {
   if (!(await isZipFile(file))) {
-    fail('backupUnrecognized')
+    // 手机文件选择器里点开压缩包后，选中里面的 JSON 是最常见的误操作
+    fail(/\.json$/i.test(file.name) ? 'backupInsideArchive' : 'backupUnrecognized')
   }
   try {
     for await (const entry of readArchive(file)) {

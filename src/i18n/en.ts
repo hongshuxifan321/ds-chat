@@ -110,6 +110,8 @@ export const en = {
   messageThinking: 'Thinking',
   backupInvalidJson: 'The file is not valid JSON.',
   backupUnrecognized: 'File not recognized. Please choose a DeepSeek chat history ZIP.',
+  backupInsideArchive:
+    'You picked a file from inside the archive. Go back one level and select the whole .zip file.',
   backupNewerVersion: 'This file uses a newer version. Please update the app before importing.',
   backupInvalidVersion: 'The file version is invalid and cannot be imported.',
   backupIncomplete: 'The file is incomplete and cannot be imported.',
@@ -142,7 +144,7 @@ export const en = {
   historyImportConfirmDescription:
     'The uploaded chat history will replace all your current chats. Import anyway?',
   historyImportDescription:
-    'Importing chat history replaces all local chats and attachments. Supports ZIP files exported from DeepSeek.',
+    'Importing chat history replaces all local chats and attachments. Supports ZIP files exported from DeepSeek. On iPhone pick the whole .zip, not an unzipped folder.',
   exportHelpLink: 'How to export?',
   exportHelpTitle: 'How to export your DeepSeek history',
   exportHelpStep1: 'Open chat.deepseek.com in a browser and sign in. The app works too.',
@@ -151,7 +153,7 @@ export const en = {
   exportHelpStep3:
     'Click Download next to Export all chats to get a ZIP named like deepseek_data-2026-11-17.zip. The link expires after 7 days; click Re-export to get a new one.',
   exportHelpStep4:
-    'Back here, open Settings → Data management, click Upload next to Import chat history and pick that ZIP. Importing replaces all local chats and attachments.',
+    'Back here, open Settings → Data management, click Upload next to Import chat history and pick that ZIP. Importing replaces all local chats and attachments. On iPhone, if tapping the ZIP expands its contents, go back one level and select the whole .zip instead.',
   historyImporting: 'Importing…',
   historyImportingTitle: 'Importing chats',
   historyImportingKeepAwake:
@@ -167,7 +169,7 @@ export const en = {
   historyImported: 'Imported {count} chats',
   historyImportedPartial: 'Imported {count} chats, skipped {skipped} that could not be read',
   historyImportFailed:
-    'File import failed. The file format may be invalid, or the ZIP file may use an older chat export format. Please export your chat history from DeepSeek again and retry the import.',
+    'Could not read the file. It may be damaged, incompletely downloaded, or not a DeepSeek chat export ZIP. Export a new archive and import it again.',
   historyExportFailed: 'Export failed: {message}',
   exportAllLabel: 'Export all chats',
   historyExportDescription:

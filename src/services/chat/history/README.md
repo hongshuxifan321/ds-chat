@@ -17,7 +17,7 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 
 导入来源有两种，解析出的条目完全一致（见 [archiveSource.ts](./archiveSource.ts)）：官方导出的 ZIP，以及系统自动解压后留下的同名文件夹。手机与 macOS 常在下载时自动解开压缩包，用户手上只剩目录；目录来源按 `manifest.json` 所在层级确定归档根，用户选到外面一层也能导入，排序与 ZIP 约定一致。目录选择依赖 `webkitdirectory`，iOS Safari 不支持，那里只能选 ZIP。
 
-可选字段允许缺省；时间接受以 `Z` 结尾、带可选小数秒的 UTC 时间。校验后只保留已定义字段，未知类型或无法解析的内容片段直接丢弃。会话级字段不合法只让这一个会话被跳过并计入「跳过数」，manifest 版本、索引缺失和 ZIP 完整性这类归档级问题才让整次导入失败。
+可选字段允许缺省；时间接受以 `Z` 结尾、带可选小数秒的 UTC 时间。`pinned` 缺省或不是布尔值时按未置顶处理，不会因此跳过会话。校验后只保留已定义字段，未知类型或无法解析的内容片段直接丢弃。会话级字段不合法只让这一个会话被跳过并计入「跳过数」，manifest 版本、索引缺失和 ZIP 完整性这类归档级问题才让整次导入失败。
 
 ## 导入与替换
 
@@ -56,7 +56,6 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 | ------------------------------------------------------------------------------ | ------------------------------ |
 | [format.ts](./format.ts)、[schema.ts](./schema.ts)                             | 归档类型与字段校验             |
 | [toLocal.ts](./toLocal.ts)、[toArchive.ts](./toArchive.ts)                     | 归档与本地消息转换             |
-| [archiveSource.ts](./archiveSource.ts)                                         | ZIP 与文件夹两种来源统一成条目流 |
 | [importArchive.ts](./importArchive.ts)、[exportArchive.ts](./exportArchive.ts) | 条目读取、暂存与归档组装       |
 | [zipReader.ts](./zipReader.ts)、[zipWriter.ts](./zipWriter.ts)                 | ZIP 读写及路径、大小、CRC 校验 |
 | [../backup.ts](../backup.ts)                                                   | 导入导出入口与串行队列         |

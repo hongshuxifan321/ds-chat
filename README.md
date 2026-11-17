@@ -18,6 +18,7 @@ HTTPS is required to install it to the home screen and open it offline; over HTT
 
 - Adds `manifest.json`, a service worker, and icons: installable to the desktop or home screen, with an offline shell; chat requests always go straight to the API and are never cached.
 - Settings gains a create-key → top-up → paste-back walkthrough, a guide for exporting history from the official app, and a more forgiving history import: a broken conversation is skipped instead of failing the whole archive, a folder left behind by automatic extraction can be imported too, and progress is reported by sessions, attachments, and commit.
+- Pinned chats get their own group at the top of the sidebar; the menu on each chat pins or unpins it. Pinning is kept on export and restored on import.
 - A balance card at the bottom of the sidebar shows the account balance and bonus credit with a top-up link. It stays hidden until a key is set, keeps the amount in memory only, and refreshes after each reply.
 - On touch devices Enter inserts a newline instead of sending.
 - Branding, title, theme colour, and icons are DS Chat; the chat protocol is left as upstream.

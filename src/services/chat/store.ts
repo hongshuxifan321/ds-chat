@@ -89,8 +89,9 @@ export const useChatStore = create<ChatState>(() => ({
 
 const { getState: get, setState: set } = useChatStore
 
+/** 置顶的排在最前，组内仍按 updatedAt 降序。 */
 const sortSessions = (sessions: SessionSummary[]) =>
-  [...sessions].sort((a, b) => b.updatedAt - a.updatedAt)
+  [...sessions].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt - a.updatedAt)
 
 const getSession = (id: string) => {
   const cache = get().sessionCache
@@ -102,8 +103,15 @@ const getStreamController = (id: string) => {
   return Object.hasOwn(streams, id) ? streams[id] : undefined
 }
 
-const sameSummary = (a: SessionSummary, b: SessionSummary) =>
-  a.title === b.title && a.createdAt === b.createdAt && a.updatedAt === b.updatedAt
+/** 只比较列表用到的元数据；`pinned` 缺省与 false 等价，避免老记录每次加载都判定为变更。 */
+const sameSummary = (
+  a: { title: string; createdAt: number; updatedAt: number; pinned?: boolean },
+  b: { title: string; createdAt: number; updatedAt: number; pinned?: boolean }
+) =>
+  a.title === b.title &&
+  a.createdAt === b.createdAt &&
+  a.updatedAt === b.updatedAt &&
+  Boolean(a.pinned) === Boolean(b.pinned)
 
 const sessionAccess = new Map<string, number>()
 const unsavedSessions = new Set<string>()
@@ -474,6 +482,24 @@ export const renameSession = (id: string, title: string) => {
       ),
     }))
     void db.renameSession(id, title).catch(db.reportStorageError('rename session'))
+  }
+}
+
+/** 置顶不改变 updatedAt：列表按置顶分组，组内顺序仍是真实的最后更新顺序。 */
+export const setPinned = (id: string, pinned: boolean) => {
+  if (get().importingHistory || deletingSessions.has(id)) {
+    return
+  }
+  if (getSession(id)) {
+    updateSession(id, (session) => ({ ...session, pinned }))
+    persist(id)
+  } else {
+    set((state) => ({
+      sessions: sortSessions(
+        state.sessions.map((session) => (session.id === id ? { ...session, pinned } : session))
+      ),
+    }))
+    void db.pinSession(id, pinned).catch(db.reportStorageError('pin session'))
   }
 }
 

@@ -32,7 +32,7 @@ export const en = {
   contextSummaryPrompt:
     'Please turn our conversation so far into a hand-off summary that I can continue from in a new chat. Requirements: 1) in two or three sentences, say what we are talking about and where we are; 2) list what is already settled or agreed — settings, rules, my preferences, decisions already made; 3) list what is unfinished or still open; 4) copy anything that must stay exact (names, numbers, settings, terminology, snippets) verbatim rather than paraphrasing or summarising it; 5) leave out anything irrelevant to continuing and do not retell the conversation.',
   contextPromptHint:
-    'This prompt is only a starting point — edit it however you like, or write your own, e.g. "summarise the setting and story so far, I want to pick it up from there".',
+    'This summary prompt is only an example — use it as it is, or write entirely your own.',
   contextHowTo: 'What should I do?',
   contextWarnTitle: 'Context is at {percent} — nearly full',
   contextWarnBody:

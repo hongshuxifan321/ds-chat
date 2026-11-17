@@ -374,9 +374,11 @@ const ImportProgress = ({
       onClose={() => {}}
       footer={
         <div className={styles.importProgress}>
-          {progress && total > 0
-            ? t('historyImportingProgress', { done: progress.done, total })
-            : t('historyImportingPreparing')}
+          {progress === null
+            ? t('historyImportingPreparing')
+            : total > 0
+              ? t('historyImportingProgress', { done: progress.done, total })
+              : t('historyImportingProcessed', { count: progress.done })}
         </div>
       }
     >

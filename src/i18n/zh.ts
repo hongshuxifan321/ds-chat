@@ -137,6 +137,7 @@ export const zh = {
     '请保持屏幕常亮，不要切换到后台或锁屏。导入在本页面进行，页面被挂起就会中断。',
   historyImportingPreparing: '正在读取归档…',
   historyImportingProgress: '已处理 {done} / {total} 个对话',
+  historyImportingProcessed: '已处理 {count} 个对话',
   historyImportInterrupted:
     '导入被中断，可能因为页面切到了后台或屏幕自动锁定。请保持此页面在前台后重新导入。',
   historyImportNoSpace: '本地存储空间不足，导入失败。请清理浏览器存储后重试。',

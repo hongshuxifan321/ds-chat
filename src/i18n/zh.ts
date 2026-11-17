@@ -40,18 +40,22 @@ export const zh = {
   balanceFailed: '获取失败，点击重试',
   billingHowTo: '如何充值？',
   setupStepCreateTitle: '1. 创建 API Key',
-  setupStepCreateDesc: '打开开放平台，在「API Keys」页点「创建」。Key 只完整显示一次，务必当场复制。',
+  setupStepCreateDesc:
+    '打开开放平台并登录，点左上角菜单里的「API Keys」，再点右边的「创建」，名字随便填。弹出的 sk- 开头字符点「复制」存好，它只完整显示这一次，也别发给任何人。',
   setupStepCreateAction: '去创建',
   setupStepTopUpTitle: '2. 充值',
-  setupStepTopUpDesc: '新账号有赠金；用完后在「充值」页选金额，用支付宝或微信扫码支付。',
+  setupStepTopUpDesc:
+    '新账号有赠金，可以先用。余额不够时回开放平台，左上角菜单点「充值」，选金额后用支付宝或微信扫码，先充几块钱试试就行。充值需先实名认证，未成年账号无法充值。',
   setupStepTopUpAction: '去充值',
   setupStepBackTitle: '3. 回填到这里',
-  setupStepBackDesc: '把复制到的 Key 粘贴到上方「输入 API Key」，点「确定」保存后即可开始对话。',
+  setupStepBackDesc:
+    '把 Key 粘贴到上方输入框，再把页面拉到最下面点「确定」。手机上「确定」在页面底部，中途看不到它。',
   topUpHelpTitle: '如何充值',
   topUpHelpStep1: '打开 platform.deepseek.com，用与 DeepSeek App 相同的手机号登录。',
-  topUpHelpStep2: '左侧菜单点「充值」，选择金额，用支付宝或微信扫码支付。',
-  topUpHelpStep3: '支付后可在「用量信息」页查看余额与消耗明细。',
-  topUpHelpStep4: '余额为 0 时，本应用会提示「账户余额不足，请充值后重试」。',
+  topUpHelpStep2: '登录后点左上角的三条杠展开菜单，选「充值」。',
+  topUpHelpStep3: '选金额，用支付宝或微信扫码支付。首次充值需实名认证，未成年账号无法充值。',
+  topUpHelpStep4:
+    '支付后在「用量信息」页能看余额与消耗明细。余额为 0 时，本应用会提示「账户余额不足，请充值后重试」。',
   messageSearchSummary: '1 个网页',
   messageSearchSummaries: '{count} 个网页',
   messageVersions: '消息版本',
@@ -132,11 +136,13 @@ export const zh = {
   historyImportDescription: '导入历史对话会覆盖全部本地对话和附件，支持 DeepSeek 导出的 ZIP 文件。',
   exportHelpLink: '怎么导出？',
   exportHelpTitle: '如何导出官方历史对话',
-  exportHelpStep1: '打开 DeepSeek App 或网页版，进入「设置 → 数据管理」。',
-  exportHelpStep2: '点「导出所有历史对话」右侧的「下载」，得到一个 ZIP 文件。',
-  exportHelpStep3: '下载链接 7 天后过期，过期后回该页面点「重新导出」即可。',
+  exportHelpStep1: '网页版打开 chat.deepseek.com 并登录；用 App 也可以，只是菜单位置不同。',
+  exportHelpStep2:
+    '网页版：点左上角的三条杠展开侧栏，点左下角头像右边的三个点，选「系统设置」，再点「数据管理」。App 里直接进「设置 → 数据管理」。',
+  exportHelpStep3:
+    '点「导出所有历史对话」右边的「下载」，得到一个 ZIP，文件名类似 deepseek_data-2026-11-17.zip。下载链接 7 天后过期，过期回这一页点「重新导出」。',
   exportHelpStep4:
-    '回到本应用的「设置 → 数据管理」，点「上传」选择该 ZIP。导入会覆盖本地全部对话与附件。',
+    '回到本应用的「设置 → 数据管理」，点「导入历史对话」右边的「上传」，选那个 ZIP。导入会覆盖本地全部对话与附件。',
   historyImporting: '导入中…',
   historyImportingTitle: '正在导入历史对话',
   historyImportingKeepAwake:

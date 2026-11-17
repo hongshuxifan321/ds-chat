@@ -45,22 +45,23 @@ export const en = {
   billingHowTo: 'How to top up?',
   setupStepCreateTitle: '1. Create an API Key',
   setupStepCreateDesc:
-    'Open the platform and click Create on the API Keys page. The key is shown in full only once, so copy it right away.',
+    'Sign in on the platform, open API Keys from the top-left menu, then click Create and give it any name. Copy the sk- key that appears: it is shown in full only once, and never share it.',
   setupStepCreateAction: 'Create',
   setupStepTopUpTitle: '2. Top up',
   setupStepTopUpDesc:
-    'New accounts come with free credit. When it runs out, pick an amount on the Top up page and pay with Alipay or WeChat.',
+    'New accounts come with free credit. When it runs low, go back to the platform, choose Top up in the top-left menu, pick an amount and pay with Alipay or WeChat; a few yuan is enough to start. Topping up requires identity verification; under-18 accounts cannot top up.',
   setupStepTopUpAction: 'Top up',
   setupStepBackTitle: '3. Paste it back here',
   setupStepBackDesc:
-    'Paste the key into the "Enter API Key" field above and click Confirm. You can start chatting right away.',
+    'Paste the key into the field above, then scroll to the bottom of the page and click Confirm. On phones the button sits at the very bottom.',
   topUpHelpTitle: 'How to top up',
   topUpHelpStep1:
     'Open platform.deepseek.com and sign in with the same phone number as the DeepSeek app.',
-  topUpHelpStep2: 'Choose Top up on the left, pick an amount, and pay with Alipay or WeChat.',
-  topUpHelpStep3: 'After paying, the balance and usage appear on the Usage page.',
+  topUpHelpStep2: 'Once signed in, open the top-left menu and choose Top up.',
+  topUpHelpStep3:
+    'Pick an amount and pay with Alipay or WeChat. The first top-up requires identity verification; under-18 accounts cannot top up.',
   topUpHelpStep4:
-    'With a zero balance this app replies "Insufficient balance, please top up and retry".',
+    'After paying, the balance and usage appear on the Usage page. With a zero balance this app replies "Insufficient balance, please top up and retry".',
   messageSearchSummary: '1 web page',
   messageSearchSummaries: '{count} web pages',
   messageVersions: 'Message versions',
@@ -144,11 +145,13 @@ export const en = {
     'Importing chat history replaces all local chats and attachments. Supports ZIP files exported from DeepSeek.',
   exportHelpLink: 'How to export?',
   exportHelpTitle: 'How to export your DeepSeek history',
-  exportHelpStep1: 'In the DeepSeek app or web app, open Settings → Data management.',
-  exportHelpStep2: 'Click Download next to Export all chats. You get a ZIP file.',
-  exportHelpStep3: 'The download link expires after 7 days. Click Re-export to get a new one.',
+  exportHelpStep1: 'Open chat.deepseek.com in a browser and sign in. The app works too.',
+  exportHelpStep2:
+    'Web: open the top-left menu, click the three dots next to your avatar at the bottom left, then System settings → Data management. In the app: Settings → Data management.',
+  exportHelpStep3:
+    'Click Download next to Export all chats to get a ZIP named like deepseek_data-2026-11-17.zip. The link expires after 7 days; click Re-export to get a new one.',
   exportHelpStep4:
-    'Back here, click Upload and pick that ZIP. Importing replaces all local chats and attachments.',
+    'Back here, open Settings → Data management, click Upload next to Import chat history and pick that ZIP. Importing replaces all local chats and attachments.',
   historyImporting: 'Importing…',
   historyImportingTitle: 'Importing chats',
   historyImportingKeepAwake:

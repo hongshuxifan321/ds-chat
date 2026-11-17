@@ -197,6 +197,7 @@ export const zh = {
   uploadServerBusy: '服务器繁忙',
   uploadParseFailed: '解析失败',
   imageUnsupportedSkipped: '{count} 张图片服务端无法识别，已跳过，之后的提问不再携带这些图片',
+  attachmentUnsupported: '服务端无法识别此格式，已跳过',
   uploadFileCountLimit: '已上传文件数达到上限（{limit} 个），可 ',
   uploadStorageLimit: '已上传文件占用空间达到上限（{limit}GB），可 ',
   uploadDeleteFiles: '删除文件',

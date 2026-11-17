@@ -61,10 +61,13 @@ export const MessageFile = ({
   const upload = useUploadState(file)
   const uploading = upload?.status === 'uploading'
   const failed = upload?.status === 'error'
+  /** 服务端明确拒绝过这个附件：已经不会再进入请求，也没有可重试的上传 */
+  const unsupported = file.unsupported === true
   const retryable = failed && upload.retryable
   const errorText = failed ? t(upload.error.key, upload.error.params) : undefined
+  const reasonText = unsupported ? t('attachmentUnsupported') : errorText
 
-  const retry = retryable ? onRetry : null
+  const retry = retryable && !unsupported ? onRetry : null
 
   if (file.isImage && url !== null) {
     const preview = url ? (
@@ -91,17 +94,17 @@ export const MessageFile = ({
 
     // 「上传失败」只显示状态，其余原因写在图片底部的渐变上
     const reason =
-      errorText && errorText !== t('uploadFileStatusFailed') ? (
-        <span className={styles.reason}>{errorText}</span>
+      reasonText && reasonText !== t('uploadFileStatusFailed') ? (
+        <span className={styles.reason}>{reasonText}</span>
       ) : null
 
-    // 上传失败不可重试：保留缩略图，底部渐变显示原因
-    if (failed && !retry) {
+    // 上传失败不可重试或被服务端拒绝：保留缩略图，底部渐变显示原因
+    if ((failed || unsupported) && !retry) {
       return (
         <div
           className={clsx(styles.image, styles.imageThumb)}
-          title={errorText}
-          aria-label={errorText}
+          title={reasonText}
+          aria-label={reasonText}
         >
           {preview ?? (
             <span className={styles.failedIcon}>
@@ -151,12 +154,13 @@ export const MessageFile = ({
     )
   }
 
+  // 文档卡片：被服务端拒绝过的附件按「不可重试的失败」展示原因，边框保持普通样式
   return (
     <FileCard
       name={file.name}
       size={file.size}
-      status={uploading ? 'uploading' : failed ? 'error' : 'done'}
-      error={errorText}
+      status={unsupported ? 'error' : uploading ? 'uploading' : failed ? 'error' : 'done'}
+      error={unsupported ? reasonText : errorText}
       onRetry={retry ?? undefined}
       onOpen={url && !upload ? () => window.open(url, '_blank', 'noreferrer') : undefined}
     />

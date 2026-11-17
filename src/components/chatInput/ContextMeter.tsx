@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
+import { showToast } from '../base/toastState.js'
+import { copyText } from '../../utils/clipboard.js'
 import {
   CONTEXT_DANGER_RATIO,
   CONTEXT_WARN_RATIO,
@@ -93,7 +95,7 @@ export const ContextNotice = ({
       </div>
       <div className={styles.noticeActions}>
         <button type="button" className={styles.linkButton} onClick={onExplain}>
-          {t('contextLearnMore')}
+          {t('contextHowTo')}
         </button>
         <Button
           variant="outlined"
@@ -110,16 +112,26 @@ export const ContextNotice = ({
   )
 }
 
-/** 说明卡：面向不需要懂 token 的用户，把「上下文」讲成日常说法 */
+/** 说明卡：面向不需要懂 token 的用户，把「上下文」讲成日常说法，并给出可直接照做的三步 */
 export const ContextCard = ({ usage, onClose }: { usage: ContextUsage; onClose: () => void }) => {
   const t = useTranslate()
+  const [copied, setCopied] = useState(false)
   const values = {
     used: formatTokens(usage.used),
     window: formatWindow(usage.window),
     percent: formatPercent(usage.ratio),
   }
+  const copyPrompt = async () => {
+    if (!(await copyText(t('contextSummaryPrompt')))) {
+      showToast({ key: 'copyFailed' })
+      return
+    }
+    setCopied(true)
+    showToast({ key: 'contextCopyPromptDone' })
+    setTimeout(() => setCopied(false), 2000)
+  }
   return (
-    <Modal title={t('contextCardTitle')} closable onClose={onClose}>
+    <Modal title={t('contextCardTitle')} closable onClose={onClose} mainClassName={styles.cardMain}>
       <div className={styles.card}>
         <div className={styles.cardValue}>
           {t('contextCardCurrent', values)}
@@ -132,7 +144,19 @@ export const ContextCard = ({ usage, onClose }: { usage: ContextUsage; onClose: 
         <div className={styles.cardSectionTitle}>{t('contextCardWhyTitle')}</div>
         <p className={styles.cardText}>{t('contextCardWhy')}</p>
         <div className={styles.cardSectionTitle}>{t('contextCardAdviceTitle')}</div>
-        <p className={styles.cardText}>{t('contextCardAdvice')}</p>
+        <p className={styles.cardText}>{t('contextCardStep1')}</p>
+        <p className={styles.cardText}>{t('contextCardStep2')}</p>
+        <p className={styles.cardText}>{t('contextCardStep3')}</p>
+        {/* 复制失败时也能手动选中：指令原文直接摆出来 */}
+        <div className={styles.promptBox}>{t('contextSummaryPrompt')}</div>
+        <Button
+          variant="outlined"
+          size="s"
+          className={styles.copyPrompt}
+          onClick={() => void copyPrompt()}
+        >
+          {copied ? t('contextCopyPromptDone') : t('contextCopyPrompt')}
+        </Button>
       </div>
     </Modal>
   )

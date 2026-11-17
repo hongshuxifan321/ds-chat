@@ -142,6 +142,31 @@
   max-width: 460px;
 }
 
+/* 三步说明较长：小屏上内容区自己滚，别让弹窗顶出屏幕 */
+.cardMain {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  scrollbar-color: var(--scroll-color) transparent;
+}
+
+.copyPrompt {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.promptBox {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-3);
+  font-size: 12px;
+  line-height: 19px;
+  color: var(--dsw-alias-label-secondary);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .cardValue {
   display: flex;
   align-items: baseline;

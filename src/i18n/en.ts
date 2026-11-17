@@ -20,17 +20,25 @@ export const en = {
   contextCardWhyTitle: 'Why does it fill up?',
   contextCardWhy:
     'The limit is set by the model — about 1M tokens here. The longer the chat, the more gets resent each turn: replies slow down, costs rise, and near the limit an answer can be cut off or the request can fail outright.',
-  contextCardAdviceTitle: 'What to do past 80%?',
-  contextCardAdvice:
-    'Write down what you still need (you can ask for a summary of the conclusions first), then start a new chat and continue there. This chat stays exactly as it is and can be reopened anytime.',
+  contextCardAdviceTitle: 'Past 80% — what to do (3 steps)',
+  contextCardStep1:
+    '① Have the AI summarise first: click "Copy the summary prompt" below, paste it into the box and send. It will turn this conversation into key points you can carry over.',
+  contextCardStep2:
+    '② Copy its answer: once it finishes, click the copy icon at the bottom left of that reply (two overlapping squares) to copy the whole summary.',
+  contextCardStep3:
+    '③ Start a new chat: click "New chat" (the ⊕ at the top right on phones, the button at the top of the sidebar on desktop), paste the summary in and send, then ask what you actually need. This chat stays here, so you can come back and compare.',
+  contextCopyPrompt: 'Copy the summary prompt',
+  contextCopyPromptDone: 'Copied — paste it into the box and send',
+  contextSummaryPrompt:
+    'Please summarise our conversation so far as a list of key points: 1) conclusions reached; 2) key numbers and where they came from; 3) open questions; 4) what I plan to do next. Keep it short and do not repeat the original text.',
+  contextHowTo: 'What should I do?',
   contextWarnTitle: 'Context is at {percent} — nearly full',
   contextWarnBody:
-    'Each question resends the entire conversation, so the fuller it gets, the slower and costlier each turn becomes; near the limit answers can be cut off. Jot down what you still need, then hit "New chat" and continue there — this one stays in the sidebar.',
+    'Each question resends the entire conversation, so the fuller it gets, the slower and costlier each turn becomes; near the limit answers can be cut off. Click "What should I do?" for the three steps, then carry the key points into a new chat.',
   contextDangerTitle: 'Context is about to hit the limit ({percent})',
   contextDangerBody:
-    'About {used} of {window} is in use. Another question or two may fail outright or come back partial. Save what matters and continue in a new chat.',
+    'About {used} of {window} is in use. Another question or two may fail outright or come back partial. Follow the three steps under "What should I do?" to take the key points with you, then continue in a new chat.',
   contextDismiss: 'Got it',
-  contextLearnMore: 'What is this?',
   untitledChat: 'New chat',
   sessionLoading: 'Loading chats...',
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',

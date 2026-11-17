@@ -1,7 +1,13 @@
 import clsx from 'clsx'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { IconPanelLeftOutline16, IconSettingsOutline16, NewChatIcon } from '../base/icons.js'
+import {
+  IconCloseOutline16,
+  IconPanelLeftOutline16,
+  IconSearchOutline16,
+  IconSettingsOutline16,
+  NewChatIcon,
+} from '../base/icons.js'
 import { setSiderCollapsed } from '../../services/settings.js'
 import { groupSessions } from '../../services/chat/sessionGroups.js'
 import { newChat, removeSession, useChatStore } from '../../services/chat/store.js'
@@ -22,9 +28,32 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const sessions = useChatStore((state) => state.sessions)
   const activeId = useChatStore((state) => state.activeId)
   const [now, setNow] = useState(Date.now)
-  const groups = useMemo(() => groupSessions(sessions, now, t), [sessions, now, t])
+  const [query, setQuery] = useState('')
+  /** 实际用于过滤的关键词：输入法组字期间先不更新，避免拼音阶段的列表乱跳 */
+  const [applied, setApplied] = useState('')
+  const composingRef = useRef(false)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
   const [deletePending, setDeletePending] = useState(false)
+
+  // 只匹配会话标题：正文不在列表数据里（sessionSummaries 只存元数据），搜索正文需要另建索引
+  const visibleSessions = useMemo(() => {
+    const terms = applied.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    if (terms.length === 0) {
+      return sessions
+    }
+    return sessions.filter((session) => {
+      const title = session.title.toLowerCase()
+      return terms.every((term) => title.includes(term))
+    })
+  }, [sessions, applied])
+  const groups = useMemo(() => groupSessions(visibleSessions, now, t), [visibleSessions, now, t])
+  const searching = applied.trim().length > 0
+
+  const clearSearch = () => {
+    setQuery('')
+    setApplied('')
+  }
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
@@ -75,7 +104,57 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         </span>
         {t('newChat')}
       </button>
+      <div className={styles.searchRow}>
+        <span className={styles.searchRowIcon}>
+          <IconSearchOutline16 />
+        </span>
+        <input
+          ref={inputRef}
+          className={styles.searchInput}
+          type="text"
+          value={query}
+          placeholder={t('searchSessionsPlaceholder')}
+          aria-label={t('searchSessionsPlaceholder')}
+          onChange={(event) => {
+            setQuery(event.target.value)
+            if (!composingRef.current) {
+              setApplied(event.target.value)
+            }
+          }}
+          onCompositionStart={() => {
+            composingRef.current = true
+          }}
+          onCompositionEnd={(event) => {
+            composingRef.current = false
+            setApplied(event.currentTarget.value)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              clearSearch()
+            }
+          }}
+        />
+        {query ? (
+          <IconButton
+            className={styles.searchClear}
+            size="xs"
+            icon={<IconCloseOutline16 />}
+            tooltip={t('searchSessionsClear')}
+            onClick={() => {
+              clearSearch()
+              inputRef.current?.focus()
+            }}
+          />
+        ) : null}
+      </div>
       <div className={styles.listWrap}>
+        {searching && groups.length === 0 ? (
+          <div className={styles.searchEmpty}>
+            <div className={styles.searchEmptyTitle}>{t('searchSessionsEmpty')}</div>
+            <div className={styles.searchEmptyHint}>{t('searchSessionsHint')}</div>
+          </div>
+        ) : null}
         <div className={styles.list}>
           {groups.map((group) => (
             <div key={group.key} className={styles.section}>

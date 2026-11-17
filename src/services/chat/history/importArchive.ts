@@ -83,7 +83,7 @@ export const checkArchiveFormat = async (source: ImportSource): Promise<void> =>
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
  * 单个会话结构异常时跳过它、其余照常导入；归档本身损坏（解压、CRC、文件缺失）才整体失败。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
- * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数。
+ * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数与没能存下的图片张数。
  */
 /** 导入进度：会话与附件分两个阶段，最后是写入本地。界面据此换文案，避免停在 100% 不动 */
 export type ImportProgress =
@@ -97,13 +97,15 @@ const SESSION_FILE_PATH = /^chat_sessions\/[^/]+_files\//
 export const importArchive = async (
   source: ImportSource,
   onProgress?: (progress: ImportProgress) => void
-): Promise<{ skipped: number }> => {
+): Promise<{ skipped: number; skippedImages: number }> => {
   if (source.kind === 'zip' && !(await isZipFile(source.file))) {
     fail(/\.json$/i.test(source.file.name) ? 'backupInsideArchive' : 'backupUnrecognized')
   }
   const imported = new Set<string>()
   /** 解析失败被跳过的会话数；这些会话的图片条目在下面一并跳过 */
   let skipped = 0
+  /** 没能存到本机的图片张数：空间不足或浏览器不接受，都不该让整份归档失败 */
+  let skippedImages = 0
   /** 会话总数，读中央目录得到；0 表示还没算出来 */
   let total = 0
   /** 附件（图片）总数：会话导完后还要逐个解压保存，进度必须继续动 */
@@ -144,8 +146,15 @@ export const importArchive = async (
     }
     const data = await readEntry(entry)
     const type = imageType(new Uint8Array(await data.slice(0, 16).arrayBuffer()))
-    await db.saveStagingFiles([{ id, blob: new Blob([data], { type }) }])
-    stored.set(id, type)
+    try {
+      // 浏览器写不进 Blob 时会自动改存 base64（见 db.ts）；这里再兜一层：
+      // 真写不进去（空间不足、单张超限）就跳过这一张，别让整份归档失败。
+      await db.saveStagingFiles([{ id, blob: new Blob([data], { type }) }])
+      stored.set(id, type)
+    } catch (error) {
+      db.reportStorageError('save imported image')(error)
+      skippedImages += 1
+    }
   }
 
   try {
@@ -222,5 +231,5 @@ export const importArchive = async (
   if (stored.size > 0) {
     await db.updateStagingFileTypes(stored)
   }
-  return { skipped }
+  return { skipped, skippedImages }
 }

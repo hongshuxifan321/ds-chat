@@ -17,6 +17,7 @@ import {
 } from '../../services/chat/backup.js'
 import type { ImportSource } from '../../services/chat/history/archiveSource.js'
 import type { ImportProgress } from '../../services/chat/history/importArchive.js'
+import { isBlobStorageError } from '../../services/chat/db.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
@@ -574,25 +575,32 @@ const useHistoryImport = () => {
     }
     document.addEventListener('visibilitychange', onHidden)
     try {
-      const { imported, skipped } = await importHistory(source, setProgress)
+      const { imported, skipped, skippedImages } = await importHistory(source, setProgress)
       setStatus(
-        skipped > 0
-          ? { key: 'historyImportedPartial', params: { count: imported, skipped } }
-          : {
-              key: imported === 1 ? 'historyImportedOne' : 'historyImported',
-              params: { count: imported },
+        skippedImages > 0
+          ? {
+              key: 'historyImportImagesSkipped',
+              params: { count: imported, images: skippedImages },
             }
+          : skipped > 0
+            ? { key: 'historyImportedPartial', params: { count: imported, skipped } }
+            : {
+                key: imported === 1 ? 'historyImportedOne' : 'historyImported',
+                params: { count: imported },
+              }
       )
     } catch (error) {
-      // 先看是不是切后台导致的中断，再区分文件问题与存储空间问题
+      // 先看是不是切后台导致的中断，再区分存储写不进去、空间不足与文件本身的问题
       setStatus(
         hidden.current
           ? { key: 'historyImportInterrupted', error: true }
           : isQuotaError(error)
             ? { key: 'historyImportNoSpace', error: true }
-            : error instanceof BackupError
-              ? { key: error.key, error: true }
-              : { key: 'historyImportFailed', error: true, detail: describeError(error) }
+            : isBlobStorageError(error)
+              ? { key: 'historyImportStoreBlocked', error: true }
+              : error instanceof BackupError
+                ? { key: error.key, error: true }
+                : { key: 'historyImportFailed', error: true, detail: describeError(error) }
       )
     } finally {
       document.removeEventListener('visibilitychange', onHidden)

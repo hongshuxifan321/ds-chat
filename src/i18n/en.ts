@@ -210,6 +210,10 @@ export const en = {
     'Import was interrupted, possibly because the page went to the background or the screen locked. Keep this page in the foreground and import again.',
   historyImportNoSpace:
     'Not enough local storage. Free up browser storage and try the import again.',
+  historyImportStoreBlocked:
+    'Local storage refused the write (usually the device is out of space, or the browser blocks it), so the import failed. Your existing chats are unchanged; free up space or try another browser.',
+  historyImportImagesSkipped:
+    'Imported {count} chats, but {images} images could not be saved on this device (out of space or blocked by the browser). Those images show as placeholders.',
   historyImportedOne: 'Imported 1 chat',
   historyImported: 'Imported {count} chats',
   historyImportedPartial: 'Imported {count} chats, skipped {skipped} that could not be read',

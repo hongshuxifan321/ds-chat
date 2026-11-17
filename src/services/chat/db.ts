@@ -10,6 +10,15 @@ export type StoredFile = {
   blob: Blob
 }
 
+/**
+ * 浏览器写不进 Blob 时的替代格式：原件按 base64 存成普通字符串。
+ * 部分手机浏览器与 WebKit 内核把 Blob 写进 IndexedDB 会直接抛
+ * `UnknownError: Error preparing Blob/File data to be stored in object store`，
+ * 同一个存储写普通字符串却正常，所以退一步也要把图片留下来（体积约 +33%）。
+ */
+type StoredFileData = { id: string; type: string; data: string }
+type StoredFileRecord = StoredFile | StoredFileData
+
 /** 文件引用留在摘要中，删除会话时通过索引判断原件是否仍被引用。 */
 type StoredSessionSummary = SessionSummary & { fileIds: string[] }
 
@@ -22,13 +31,13 @@ interface ChatDB extends DBSchema {
     indexes: { fileIds: string }
   }
   /** 当前使用的文件原件 */
-  files: { key: string; value: StoredFile }
+  files: { key: string; value: StoredFileRecord }
   /**
    * 历史导入的暂存：导入过程中会话与原件只写入这两个存储，`sessions` / `files` 保持不变；
    * 全部校验通过后在一个事务中替换正式数据并清空暂存，失败时只清空暂存。
    */
   sessionsStaging: { key: string; value: Session }
-  filesStaging: { key: string; value: StoredFile }
+  filesStaging: { key: string; value: StoredFileRecord }
 }
 
 let dbPromise: Promise<IDBPDatabase<ChatDB>> | null = null
@@ -127,32 +136,125 @@ const abortTransaction = (tx: { abort(): void }) => {
   }
 }
 
+/** 浏览器拒绝把 Blob 写进 IndexedDB：引擎不支持，或存储写不进去，两种都是这条错。 */
+export const isBlobStorageError = (error: unknown): boolean =>
+  error instanceof DOMException &&
+  error.name === 'UnknownError' &&
+  error.message.includes('Blob/File data')
+
+const BASE64_CHUNK = 0x8000
+
+const toBase64 = async (blob: Blob): Promise<string> => {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  let binary = ''
+  for (let offset = 0; offset < bytes.length; offset += BASE64_CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + BASE64_CHUNK))
+  }
+  return btoa(binary)
+}
+
+const fromBase64 = (record: StoredFileData): Blob => {
+  const binary = atob(record.data)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index++) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+  return new Blob([bytes], { type: record.type })
+}
+
+/** 探测记录的 id，写完立刻删；导入开始时也会整体清空暂存。 */
+const BLOB_PROBE_ID = '__blob_probe__'
+
+let blobSupport: Promise<boolean> | null = null
+
+const probeBlobSupport = async (): Promise<boolean> => {
+  try {
+    await withDB(async (db) => {
+      const tx = db.transaction('filesStaging', 'readwrite')
+      await Promise.all([
+        tx.store.put({ id: BLOB_PROBE_ID, blob: new Blob([new Uint8Array(8)]) }),
+        tx.done,
+      ])
+    })
+  } catch (error) {
+    reportStorageError('probe blob storage')(error)
+    return false
+  }
+  try {
+    await withDB(async (db) => {
+      const tx = db.transaction('filesStaging', 'readwrite')
+      await Promise.all([tx.store.delete(BLOB_PROBE_ID), tx.done])
+    })
+  } catch {
+    // 删不掉也不要紧：下次导入开始时会清空暂存。
+  }
+  return true
+}
+
+/** 本机能不能把 Blob 写进 IndexedDB；不能时原件改存 base64。结论按页面会话缓存一次。 */
+const canStoreBlobs = (): Promise<boolean> => (blobSupport ??= probeBlobSupport())
+
+/** 写入存储用的记录：能写 Blob 就直接写，写不进去才退成 base64 字符串。 */
+const fileRecords = async (files: StoredFile[]): Promise<StoredFileRecord[]> => {
+  if (files.length === 0 || (await canStoreBlobs())) {
+    return files
+  }
+  return Promise.all(
+    files.map(async (file) => ({
+      id: file.id,
+      type: file.blob.type,
+      data: await toBase64(file.blob),
+    }))
+  )
+}
+
+/** 遇到「写不进 Blob」时改存 base64 再试一次；探测称能写但单张失败（超限、空间刚满）也走这里。 */
+const retryAsBase64 = async <T>(
+  error: unknown,
+  records: StoredFileRecord[],
+  original: StoredFile[],
+  write: (records: StoredFileRecord[]) => Promise<T>
+): Promise<T> => {
+  if (records !== original || !isBlobStorageError(error)) {
+    throw error
+  }
+  blobSupport = Promise.resolve(false)
+  return write(await fileRecords(original))
+}
+
 export const loadSessionSummaries = async (): Promise<SessionSummary[]> =>
   (await withDB((db) => db.getAll('sessionSummaries'))).map(toSessionSummary)
 
 export const loadSession = (id: string): Promise<Session | undefined> =>
   withDB((db) => db.get('sessions', id))
 
-export const saveSession = (session: Session, files: StoredFile[] = []): Promise<void> => {
+export const saveSession = async (session: Session, files: StoredFile[] = []): Promise<void> => {
   const summary = storedSummary(session)
-  return withDB(async (db) => {
-    const tx = db.transaction(['sessions', 'sessionSummaries', 'files'], 'readwrite')
-    await Promise.all([
-      (async () => {
-        try {
-          for (const file of files) {
-            await tx.objectStore('files').put(file)
+  const write = (records: StoredFileRecord[]) =>
+    withDB(async (db) => {
+      const tx = db.transaction(['sessions', 'sessionSummaries', 'files'], 'readwrite')
+      await Promise.all([
+        (async () => {
+          try {
+            for (const record of records) {
+              await tx.objectStore('files').put(record)
+            }
+            await tx.objectStore('sessions').put(session)
+            await tx.objectStore('sessionSummaries').put(summary)
+          } catch (error) {
+            abortTransaction(tx)
+            throw error
           }
-          await tx.objectStore('sessions').put(session)
-          await tx.objectStore('sessionSummaries').put(summary)
-        } catch (error) {
-          abortTransaction(tx)
-          throw error
-        }
-      })(),
-      tx.done,
-    ])
-  })
+        })(),
+        tx.done,
+      ])
+    })
+  const records = await fileRecords(files)
+  try {
+    await write(records)
+  } catch (error) {
+    await retryAsBase64(error, records, files, write)
+  }
 }
 
 /** 未打开的会话也可重命名，只读取该会话，原子更新详情和列表。 */
@@ -226,16 +328,29 @@ export const deleteSession = (sessionId: string): Promise<void> =>
     ])
   })
 
-const putFiles = (store: 'files' | 'filesStaging', files: StoredFile[]): Promise<void> =>
-  withDB(async (db) => {
-    const tx = db.transaction(store, 'readwrite')
-    await Promise.all([...files.map((file) => tx.store.put(file)), tx.done])
-  })
+const putFiles = async (store: 'files' | 'filesStaging', files: StoredFile[]): Promise<void> => {
+  const write = (records: StoredFileRecord[]) =>
+    withDB(async (db) => {
+      const tx = db.transaction(store, 'readwrite')
+      await Promise.all([...records.map((record) => tx.store.put(record)), tx.done])
+    })
+  const records = await fileRecords(files)
+  try {
+    await write(records)
+  } catch (error) {
+    await retryAsBase64(error, records, files, write)
+  }
+}
 
 export const saveFiles = (files: StoredFile[]): Promise<void> => putFiles('files', files)
 
-export const loadFile = async (id: string): Promise<Blob | undefined> =>
-  (await withDB((db) => db.get('files', id)))?.blob
+export const loadFile = async (id: string): Promise<Blob | undefined> => {
+  const record = await withDB((db) => db.get('files', id))
+  if (!record) {
+    return undefined
+  }
+  return 'blob' in record ? record.blob : fromBase64(record)
+}
 
 /** 清空导入暂存：开始导入前清除上次中断（如关闭页面）遗留的数据，导入失败后清除本次写入。 */
 export const clearStaging = (): Promise<void> =>

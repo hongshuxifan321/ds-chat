@@ -73,23 +73,55 @@ export const downloadHistory = async (): Promise<{ missing: number }> => {
   return { missing }
 }
 
+/** 归档大小：目录来源按文件大小求和。 */
+const sourceBytes = (source: ImportSource): number =>
+  source.kind === 'zip'
+    ? source.file.size
+    : source.files.reduce((total, file) => total + file.size, 0)
+
+/**
+ * 导入前预检剩余额度：连压缩包本身都放不下时必然半途失败。
+ * 早点说清楚「空间不足」，比让用户读完十几分钟再看到「文件可能已损坏」有用。
+ */
+const ensureRoom = async (source: ImportSource): Promise<void> => {
+  const storage = (navigator as Navigator & { storage?: StorageManager }).storage
+  if (typeof storage?.estimate !== 'function') {
+    return
+  }
+  let tight = false
+  try {
+    const { quota = 0, usage = 0 } = await storage.estimate()
+    tight = quota > 0 && sourceBytes(source) > quota - usage
+  } catch {
+    // 拿不到估算就照常导入，真的放不下会在写入时给出存储错误。
+    return
+  }
+  if (tight) {
+    fail('historyImportNoSpace')
+  }
+}
+
 /**
  * 确认覆盖后调用：先检查归档格式与版本，校验失败时保留正在生成的回答；
  * 通过后从 ZIP 或解压后的目录流式写入暂存，成功才替换原有会话与图片原件。
- * 返回成功导入的会话数与因结构异常被跳过的会话数。
+ * 返回成功导入的会话数、因结构异常被跳过的会话数，以及没能存下的图片张数。
  */
 export const importHistory = (
   source: ImportSource,
   onProgress?: (progress: ImportProgress) => void
-): Promise<{ imported: number; skipped: number }> =>
+): Promise<{ imported: number; skipped: number; skippedImages: number }> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
     await checkArchiveFormat(source)
+    await ensureRoom(source)
     let skipped = 0
+    let skippedImages = 0
     const imported = await replaceHistory(async () => {
-      skipped = (await importArchive(source, onProgress)).skipped
+      const result = await importArchive(source, onProgress)
+      skipped = result.skipped
+      skippedImages = result.skippedImages
     })
-    return { imported, skipped }
+    return { imported, skipped, skippedImages }
   })
 
 /** 确认删除后调用：以空历史原子替换全部本地会话与附件，保留 API Key 和其他设置。 */

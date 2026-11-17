@@ -192,6 +192,10 @@ export const zh = {
   historyImportInterrupted:
     '导入被中断，可能因为页面切到了后台或屏幕自动锁定。请保持此页面在前台后重新导入。',
   historyImportNoSpace: '本地存储空间不足，导入失败。请清理浏览器存储后重试。',
+  historyImportStoreBlocked:
+    '本机存储拒绝写入（多是手机空间不足，或浏览器限制），导入失败；原有对话没有改动。清理空间或换个浏览器再试。',
+  historyImportImagesSkipped:
+    '已导入 {count} 个对话，但 {images} 张图片没能存到本机（空间不足或浏览器拒绝写入），这些图片会显示成占位图标。',
   historyImportedOne: '已导入 1 个对话',
   historyImported: '已导入 {count} 个对话',
   historyImportedPartial: '已导入 {count} 个对话，{skipped} 个结构异常已跳过',

@@ -36,6 +36,12 @@ export const en = {
   continueGenerating: 'Continue',
   changeApiKey: 'Change API Key',
   topUp: 'Top up',
+  balanceLabel: 'Balance',
+  balanceGranted: 'Includes {amount} credit',
+  balanceTopUp: 'Top up',
+  balanceLoading: 'Checking…',
+  balanceInvalidKey: 'Invalid key, tap to edit',
+  balanceFailed: 'Failed, tap to retry',
   billingHowTo: 'How to top up?',
   setupStepCreateTitle: '1. Create an API Key',
   setupStepCreateDesc:

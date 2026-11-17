@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   IconGlobeLanguageOutline14,
   IconPaperclipOutline16,
@@ -32,6 +32,8 @@ import { useVoiceInput } from './useVoiceInput.js'
 import { VoiceButton } from './VoiceButton.js'
 import { Spectrum } from './Spectrum.js'
 import { useTranslate } from '../../i18n/index.js'
+import { getContextUsage } from '../../services/chat/context.js'
+import { ContextCard, ContextMeter, ContextNotice } from './ContextMeter.js'
 import styles from './ChatInput.module.css'
 
 /** 输入框：自适应高度的文本框 + 文件 + 深度思考与智能搜索开关 + 语音输入 + 发送 / 停止 */
@@ -54,6 +56,12 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const isMobile = useIsMobile()
   const softKeyboard = useCoarsePointer()
   const search = useSettings((state) => state.search)
+  const session = useChatStore((state) =>
+    sessionId === null ? undefined : state.sessionCache[sessionId]
+  )
+  // 上下文占用：以最近一轮服务端返回的用量为基准，加上草稿的估算
+  const usage = useMemo(() => getContextUsage(session, text), [session, text])
+  const [explain, setExplain] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const togglesRef = useRef<HTMLDivElement>(null)
@@ -163,6 +171,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       }}
     >
       <DraftAttachments items={attachments} onRetry={retryFile} onRemove={removeFile} />
+      <ContextNotice sessionId={sessionId} usage={usage} onExplain={() => setExplain(true)} />
       <div className={styles.textareaWrapper}>
         <textarea
           ref={textareaRef}
@@ -235,6 +244,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           </Tooltip>
         </div>
         <div className={styles.right}>
+          {sessionId === null ? null : (
+            <ContextMeter usage={usage} onExplain={() => setExplain(true)} />
+          )}
           <VoiceButton
             status={voice.status}
             disabled={!voice.available}
@@ -292,6 +304,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           )}
         </div>
       </div>
+      {explain ? <ContextCard usage={usage} onClose={() => setExplain(false)} /> : null}
       {dragging ? <DragMask /> : null}
     </div>
   )

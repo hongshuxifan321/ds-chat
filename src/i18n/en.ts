@@ -10,6 +10,27 @@ export const en = {
   searchSessionsClear: 'Clear',
   searchSessionsEmpty: 'No matching titles',
   searchSessionsHint: 'Titles only — message content is not searched.',
+  contextMeterTooltip: 'Context used: about {used} of {window} ({percent}). Click for details.',
+  contextCardTitle: 'Context usage',
+  contextCardCurrent: 'Now: about {used} of {window} ({percent})',
+  contextCardApprox: '(not-yet-sent content is estimated)',
+  contextCardWhatTitle: 'What counts as context?',
+  contextCardWhat:
+    'Every time you ask something, this page resends the whole earlier conversation to the model, your questions and its answers alike. That resent material is the context.',
+  contextCardWhyTitle: 'Why does it fill up?',
+  contextCardWhy:
+    'The limit is set by the model — about 1M tokens here. The longer the chat, the more gets resent each turn: replies slow down, costs rise, and near the limit an answer can be cut off or the request can fail outright.',
+  contextCardAdviceTitle: 'What to do past 80%?',
+  contextCardAdvice:
+    'Write down what you still need (you can ask for a summary of the conclusions first), then start a new chat and continue there. This chat stays exactly as it is and can be reopened anytime.',
+  contextWarnTitle: 'Context is at {percent} — nearly full',
+  contextWarnBody:
+    'Each question resends the entire conversation, so the fuller it gets, the slower and costlier each turn becomes; near the limit answers can be cut off. Jot down what you still need, then hit "New chat" and continue there — this one stays in the sidebar.',
+  contextDangerTitle: 'Context is about to hit the limit ({percent})',
+  contextDangerBody:
+    'About {used} of {window} is in use. Another question or two may fail outright or come back partial. Save what matters and continue in a new chat.',
+  contextDismiss: 'Got it',
+  contextLearnMore: 'What is this?',
   untitledChat: 'New chat',
   sessionLoading: 'Loading chats...',
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',

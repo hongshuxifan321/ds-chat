@@ -448,7 +448,9 @@ const ThemeSetting = () => {
 }
 
 /** `reason` 为失败原因的文案 key，展示时按当前语言翻译后填入 `message` 参数。 */
-type Status = (TranslationMessage & { error?: boolean; reason?: TranslationKey }) | null
+type Status =
+  | (TranslationMessage & { error?: boolean; reason?: TranslationKey; detail?: string })
+  | null
 
 /** 导出失败附带原因：预期的错误用对应文案作原因，其他错误用错误信息。 */
 const errorStatus = (key: TranslationKey, error: unknown): Status => ({
@@ -480,7 +482,9 @@ const SettingCell = ({
         {status || description ? (
           <div className={clsx(styles.description, status?.error && styles.error)}>
             {status
-              ? t(status.key, status.reason ? { message: t(status.reason) } : status.params)
+              ? `${t(status.key, status.reason ? { message: t(status.reason) } : status.params)}${
+                  status.detail ? ` (${status.detail})` : ''
+                }`
               : description}
           </div>
         ) : null}
@@ -514,6 +518,14 @@ const requestWakeLock = async (): Promise<WakeSentinel | null> => {
 const isQuotaError = (error: unknown): boolean =>
   error instanceof DOMException &&
   (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+
+/** 兜底提示后面附带的技术原因：用户截图反馈时能直接看出卡在哪一步，过长只留开头一段 */
+const ERROR_DETAIL_MAX = 120
+const describeError = (error: unknown): string => {
+  const raw = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+  const text = raw.replace(/\s+/g, ' ').trim()
+  return text.length > ERROR_DETAIL_MAX ? `${text.slice(0, ERROR_DETAIL_MAX)}…` : text
+}
 
 /** 选文件后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
 const useHistoryImport = () => {
@@ -555,8 +567,17 @@ const useHistoryImport = () => {
     }
     document.addEventListener('visibilitychange', onHidden)
     try {
-      const count = await importHistory(file, (done, total) => setProgress({ done, total }))
-      setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
+      const { imported, skipped } = await importHistory(file, (done, total) =>
+        setProgress({ done, total })
+      )
+      setStatus(
+        skipped > 0
+          ? { key: 'historyImportedPartial', params: { count: imported, skipped } }
+          : {
+              key: imported === 1 ? 'historyImportedOne' : 'historyImported',
+              params: { count: imported },
+            }
+      )
     } catch (error) {
       // 先看是不是切后台导致的中断，再区分文件问题与存储空间问题
       setStatus(
@@ -566,7 +587,7 @@ const useHistoryImport = () => {
             ? { key: 'historyImportNoSpace', error: true }
             : error instanceof BackupError
               ? { key: error.key, error: true }
-              : { key: 'historyImportFailed', error: true }
+              : { key: 'historyImportFailed', error: true, detail: describeError(error) }
       )
     } finally {
       document.removeEventListener('visibilitychange', onHidden)

@@ -165,6 +165,7 @@ export const en = {
     'Not enough local storage. Free up browser storage and try the import again.',
   historyImportedOne: 'Imported 1 chat',
   historyImported: 'Imported {count} chats',
+  historyImportedPartial: 'Imported {count} chats, skipped {skipped} that could not be read',
   historyImportFailed:
     'File import failed. The file format may be invalid, or the ZIP file may use an older chat export format. Please export your chat history from DeepSeek again and retry the import.',
   historyExportFailed: 'Export failed: {message}',

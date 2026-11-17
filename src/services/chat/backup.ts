@@ -41,16 +41,21 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
 
 /**
  * 确认覆盖后调用：先检查 ZIP 格式与版本，校验失败时保留正在生成的回答；
- * 通过后从 ZIP 流式写入暂存，成功才替换原有会话与图片原件。返回导入的会话数。
+ * 通过后从 ZIP 流式写入暂存，成功才替换原有会话与图片原件。
+ * 返回成功导入的会话数与因结构异常被跳过的会话数。
  */
 export const importHistory = (
   file: File,
   onProgress?: (done: number, total: number) => void
-): Promise<number> =>
+): Promise<{ imported: number; skipped: number }> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
     await checkArchiveFormat(file)
-    return replaceHistory(() => importArchive(file, onProgress))
+    let skipped = 0
+    const imported = await replaceHistory(async () => {
+      skipped = (await importArchive(file, onProgress)).skipped
+    })
+    return { imported, skipped }
   })
 
 /** 确认删除后调用：以空历史原子替换全部本地会话与附件，保留 API Key 和其他设置。 */

@@ -240,38 +240,68 @@ const toAssistant = (message: ChatMessage): AssistantMessage => {
 }
 
 /**
- * 按 id 排序还原消息树：父消息的 id 必须更小、角色交替、根为提问。
+ * 按 id 排序还原消息树。归档格式由官方维护，实际数据并不总是满足严格约束：
+ * 父消息缺失、父消息 id 更大、出现连续同角色消息、current_message_id 指向已删除的消息，
+ * 这些一律按「修复成可读结构」处理——一个会话的结构异常不该让整份归档导入失败。
  * current_message_id 到根的路径为当前分支；其余节点默认选中 id 最大的子消息。
  */
 const buildTree = (file: SessionFile): Pick<Session, 'messages' | 'rootMessageId'> => {
   const sorted = file.messages.toSorted((a, b) => a.id - b.id)
-  const byId = new Map<number, Message>()
-  const messages = sorted.map((message) => {
-    const { id, parent_id } = message
-    const parent = parent_id === null ? undefined : byId.get(parent_id)
-    if (
-      byId.has(id) ||
-      (parent_id === null ? message.role !== 'USER' : !parent) ||
-      (parent && parent.role === (message.role === 'USER' ? 'user' : 'assistant'))
-    ) {
-      fail('backupInvalidBranches')
+  const byId = new Map<string, Message>()
+  const parents = new Map<string, string>()
+  for (const message of sorted) {
+    const id = String(message.id)
+    // 重复 id 只保留先出现的一条，避免同一条消息出现两次
+    if (byId.has(id)) {
+      continue
     }
-    const local = message.role === 'USER' ? toUser(message) : toAssistant(message)
-    local.parentId = parent ? parent.id : null
+    byId.set(id, message.role === 'USER' ? toUser(message) : toAssistant(message))
+    if (message.parent_id !== null) {
+      parents.set(id, String(message.parent_id))
+    }
+  }
+  /** 父消息存在时才认这条引用；缺失的按根处理 */
+  const parentOf = (id: string): string | null => {
+    const parent = parents.get(id)
+    return parent !== undefined && byId.has(parent) ? parent : null
+  }
+  /** 父链成环时整条链按根处理，否则游标会转不出来 */
+  const loops = (id: string): boolean => {
+    const seen = new Set<string>([id])
+    for (let current = parentOf(id); current !== null; current = parentOf(current)) {
+      if (seen.has(current)) {
+        return true
+      }
+      seen.add(current)
+    }
+    return false
+  }
+  const messages = [...byId.values()]
+  for (const message of messages) {
+    message.parentId = loops(message.id) ? null : parentOf(message.id)
+  }
+  for (const message of messages) {
+    const parentId = message.parentId ?? null
+    const parent = parentId === null ? undefined : byId.get(parentId)
+    // 升序遍历，同级分支默认选中 id 最大的一条
     if (parent) {
-      parent.selectedChildId = local.id
+      parent.selectedChildId = message.id
     }
-    byId.set(id, local)
-    return local
-  })
-  if (messages.length === 0) {
+  }
+  const last = messages.at(-1)
+  if (!last) {
     return { messages, rootMessageId: null }
   }
-  let current = byId.get(file.current_message_id) ?? fail('backupInvalidBranches')
+  // 当前消息已被删除时退回到最后一条，保证会话仍然打得开
+  let current: Message = byId.get(String(file.current_message_id)) ?? last
   // 当前消息就是用户停留的位置，后面即使还有消息也不继续展开。
   current.selectedChildId = undefined
-  while (current.parentId) {
-    const parent = byId.get(Number(current.parentId)) ?? fail('backupInvalidBranches')
+  for (;;) {
+    const parentId = current.parentId ?? null
+    const parent = parentId === null ? undefined : byId.get(parentId)
+    if (!parent) {
+      break
+    }
     parent.selectedChildId = current.id
     current = parent
   }

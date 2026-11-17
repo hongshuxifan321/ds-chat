@@ -1,7 +1,7 @@
 import * as db from '../db.js'
 import { BackupError, fail } from './errors.js'
 import type { SessionIndexEntry } from './format.js'
-import { INDEX_PATH, MANIFEST_PATH, USER_PATH, parseSessionPath, sessionFilesDir } from './paths.js'
+import { INDEX_PATH, MANIFEST_PATH, USER_PATH, parseSessionPath } from './paths.js'
 import { checkManifest, readSessionFile, readSessionIndex } from './schema.js'
 import { toLocalSession } from './toLocal.js'
 import {
@@ -79,17 +79,20 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * 流式导入：manifest → user（不导入）→ 全部会话 JSON → index → 全部图片。
  * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
+ * 单个会话结构异常时跳过它、其余照常导入；归档本身损坏（解压、CRC、文件缺失）才整体失败。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
- * `onProgress` 回报已处理会话数与会话总数，供界面显示进度。
+ * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数。
  */
 export const importArchive = async (
   file: File,
   onProgress?: (done: number, total: number) => void
-): Promise<void> => {
+): Promise<{ skipped: number }> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
   const imported = new Set<string>()
+  /** 解析失败被跳过的会话数；这些会话的图片条目在下面一并跳过 */
+  let skipped = 0
   /** 会话总数，读中央目录得到；0 表示还没算出来 */
   let total = 0
   let lastReport = 0
@@ -111,7 +114,6 @@ export const importArchive = async (
   const stored = new Map<string, string>()
   let manifest = false
   let index: SessionIndexEntry[] | undefined
-  let currentSessionId: string | undefined
 
   const saveImage = async (entry: ArchiveEntry, id: string) => {
     if (stored.has(id)) {
@@ -141,29 +143,35 @@ export const importArchive = async (
         // 账号信息（已脱敏）不导入；文件可能缺失。
         await skipEntry(entry)
       } else if (sessionId !== null && !index) {
-        const local = toLocalSession(readSessionFile(await readJson(entry)))
-        if (local.session.id !== sessionId || imported.has(sessionId)) {
+        if (imported.has(sessionId)) {
           fail('backupIncomplete')
         }
-        imported.add(sessionId)
-        currentSessionId = sessionId
-        for (const [imagePath, id] of local.images) {
-          images.set(imagePath, id)
+        try {
+          const local = toLocalSession(readSessionFile(await readJson(entry)))
+          if (local.session.id !== sessionId) {
+            fail('backupIncomplete')
+          }
+          await db.addStagingSession(local.session)
+          imported.add(sessionId)
+          for (const [imagePath, id] of local.images) {
+            images.set(imagePath, id)
+          }
+        } catch (error) {
+          // 单个会话不符合预期就跳过它：官方导出格式由对方维护，
+          // 一个会话结构异常不该让整份归档导入失败。归档本身损坏（ArchiveError）仍然中止。
+          if (!(error instanceof BackupError)) {
+            throw error
+          }
+          skipped += 1
         }
-        await db.addStagingSession(local.session)
         report(imported.size === 1 || imported.size === total)
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
-      } else if (
-        index
-          ? imported.has(/^chat_sessions\/([^/]+)_files\//.exec(path)?.[1] ?? '')
-          : currentSessionId && path.startsWith(sessionFilesDir(currentSessionId))
-      ) {
-        // 没有被引用的条目不保存，引用了但缺失的图片只展示文件名。
+      } else {
+        // 其余条目按图片处理：只有被成功导入的会话引用到的才保存。
+        // 不认识的条目直接跳过——宁可少一个附件，也不要整份归档失败。
         const id = images.get(path)
         await (id === undefined ? skipEntry(entry) : saveImage(entry, id))
-      } else {
-        fail('backupIncomplete')
       }
     }
   } catch (error) {
@@ -172,17 +180,14 @@ export const importArchive = async (
   if (!manifest) {
     fail('backupUnrecognized')
   }
-  // index 只列出成功写出的会话，与会话文件一一对应。
-  const listed = new Set(index?.map((entry) => entry.id))
-  if (
-    !index ||
-    listed.size !== index.length ||
-    listed.size !== imported.size ||
-    [...imported].some((id) => !listed.has(id))
-  ) {
+  const entries = index ?? fail('backupIncomplete')
+  // index 只列出成功写出的会话；被跳过的会话即使出现在索引里也忽略。
+  const listed = new Set(entries.map((entry) => entry.id))
+  if (listed.size !== entries.length || [...imported].some((id) => !listed.has(id))) {
     fail('backupIncomplete')
   }
   // 会话全部写完，先把进度顶到终点：回填图片 MIME 可能还要一会儿
   report(true)
   await db.updateStagingFileTypes(stored)
+  return { skipped }
 }

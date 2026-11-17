@@ -1,10 +1,14 @@
 .balance {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  padding: 6px 10px;
-  margin-bottom: 2px;
+  box-sizing: border-box;
+  /* 左边距 6px：外层 12px + 6px 与下方「设置」图标的左边缘对齐 */
+  margin-bottom: 4px;
+  padding: 8px 6px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
 }
 
 .main {
@@ -81,6 +85,8 @@
 
 .topUp {
   flex-shrink: 0;
+  /* 推到框的右边缘，与左侧余额一头一尾 */
+  margin-left: auto;
   font-size: 12px;
   line-height: 16px;
   color: var(--dsw-alias-brand-text);

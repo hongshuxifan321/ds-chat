@@ -162,6 +162,14 @@
   -webkit-user-select: text;
 }
 
+/* 叠甲：指令只是参考，可以自己改或自己写 */
+.promptHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
 .cardValue {
   display: flex;
   align-items: baseline;

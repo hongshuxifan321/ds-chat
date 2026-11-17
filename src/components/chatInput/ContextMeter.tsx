@@ -157,6 +157,8 @@ export const ContextCard = ({ usage, onClose }: { usage: ContextUsage; onClose: 
         <p className={styles.cardText}>{t('contextCardStep1')}</p>
         <p className={styles.cardText}>{t('contextCardStep2')}</p>
         <p className={styles.cardText}>{t('contextCardStep3')}</p>
+        {/* 叠甲：指令只是参考，用户可自行改写 */}
+        <p className={styles.promptHint}>{t('contextPromptHint')}</p>
         {/* 复制失败时也能手动选中：指令原文直接摆出来 */}
         <div className={styles.promptBox}>{t('contextSummaryPrompt')}</div>
       </div>

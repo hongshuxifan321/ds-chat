@@ -10,6 +10,16 @@ const subscribe = (onChange: () => void) => {
 
 export const useIsMobile = () => useSyncExternalStore(subscribe, () => query.matches)
 
+/** 主指针是手指（手机、平板）：软键盘的回车键应当换行，发送交给发送按钮 */
+const coarseQuery = window.matchMedia('(pointer: coarse)')
+
+const subscribeCoarse = (onChange: () => void) => {
+  coarseQuery.addEventListener('change', onChange)
+  return () => coarseQuery.removeEventListener('change', onChange)
+}
+
+export const useCoarsePointer = () => useSyncExternalStore(subscribeCoarse, () => coarseQuery.matches)
+
 const preventPageScroll = (event: TouchEvent) => {
   if (event.touches.length !== 1) {
     return

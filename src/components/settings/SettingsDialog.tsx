@@ -12,7 +12,7 @@ import {
 import {
   BackupError,
   clearHistory,
-  exportHistory,
+  downloadHistory,
   importHistory,
 } from '../../services/chat/backup.js'
 import type { ImportSource } from '../../services/chat/history/archiveSource.js'
@@ -808,13 +808,11 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
     setBusy(true)
     setStatus(null)
     try {
-      const { name, blob } = await exportHistory()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = name
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 10_000)
+      const { missing } = await downloadHistory()
+      // 有记录已经不在本机时说明清楚，避免用户以为导出包是完整的
+      if (missing > 0) {
+        setStatus({ key: 'historyExportSkipped', params: { count: missing } })
+      }
     } catch (error) {
       setStatus(errorStatus('historyExportFailed', error))
     } finally {

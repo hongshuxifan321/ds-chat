@@ -45,8 +45,10 @@ export const en = {
   sessionLoading: 'Loading chats...',
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',
   sessionLoadFailed: 'Unable to load this chat. Please try again.',
+  sessionLost:
+    'This chat is no longer on this device; local data may have been cleared by the browser. It will disappear from the list after a refresh — import a backup to restore it.',
   sessionSaveFailed:
-    'Chats or attachments have not been saved locally. Retry before closing this page.',
+    'Chats or attachments have not been saved locally. Retry, or back up first.',
   sessionDeleteFailed: 'Unable to delete this chat. Please try again.',
   settings: 'Settings',
   appName: 'DS Chat',
@@ -214,6 +216,11 @@ export const en = {
   historyImportFailed:
     'Could not read the file. It may be damaged, incompletely downloaded, or not a DeepSeek chat export ZIP. Export a new archive and import it again.',
   historyExportFailed: 'Export failed: {message}',
+  historyExportBackup: 'Back up first',
+  historyExported: 'Exported to your downloads',
+  historyExportSkipped:
+    '{count} chats could not be exported this time (records are gone or unreadable); the archive includes only the rest.',
+  historyExportNothing: 'No local records left for these chats, so there is nothing to export.',
   exportAllLabel: 'Export all chats',
   historyExportDescription:
     'Includes all chat history and locally stored images. Other attachments retain file details only. Your API Key is not included.',

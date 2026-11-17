@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslate } from '../i18n/index.js'
 import { useSettings } from '../services/settings.js'
 import { useIsMobile, useMobileViewport, usePreventPageScroll } from './viewport.js'
@@ -9,6 +9,7 @@ import {
   selectSession,
   useChatStore,
 } from '../services/chat/store.js'
+import { BackupError, downloadHistory } from '../services/chat/backup.js'
 import { SearchPanel } from '../components/search/SearchPanel.js'
 import { closeSearchPanel } from '../components/search/searchPanelState.js'
 import { SessionView } from '../components/session/SessionView.js'
@@ -41,14 +42,15 @@ export const App = () => {
       ? state.sessionCache[state.activeId]
       : undefined
   )
-  const sessionLoadError = useChatStore((state) =>
-    state.activeId === null ? false : state.sessionLoadErrors[state.activeId] === true
+  const sessionLoadIssue = useChatStore((state) =>
+    state.activeId === null ? false : (state.sessionLoadErrors[state.activeId] ?? false)
   )
   const frameRef = useMobileViewport(isMobile)
   const streaming = useChatStore((state) =>
     state.activeId === null ? false : Object.hasOwn(state.streaming, state.activeId)
   )
   const activeId = useChatStore((state) => state.activeId)
+  const [backingUp, setBackingUp] = useState(false)
 
   usePreventPageScroll(isMobile)
 
@@ -73,6 +75,37 @@ export const App = () => {
     ensureApiKey()
   }, [])
 
+  // 保存失败时先把现有内容导出来：本机写不进去的时候，这是唯一还能带走对话的办法
+  const onBackup = async () => {
+    setBackingUp(true)
+    try {
+      const { missing } = await downloadHistory()
+      showToast(missing > 0 ? t('historyExportSkipped', { count: missing }) : t('historyExported'))
+    } catch (error) {
+      showToast(
+        error instanceof BackupError
+          ? t(error.key)
+          : t('historyExportFailed', {
+              message: error instanceof Error ? error.message : String(error),
+            })
+      )
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  const loadText =
+    !ready
+      ? initError
+        ? 'sessionListLoadFailed'
+        : 'sessionLoading'
+      : sessionLoadIssue === 'lost'
+        ? 'sessionLost'
+        : sessionLoadIssue === 'error'
+          ? 'sessionLoadFailed'
+          : 'sessionLoading'
+  const canRetryLoad = !ready ? initError : sessionLoadIssue === 'error'
+
   return (
     <>
       <div ref={frameRef} className={styles.frame}>
@@ -89,6 +122,14 @@ export const App = () => {
               >
                 {t('retry')}
               </Button>
+              <Button
+                variant="outlined"
+                size="s"
+                disabled={importingHistory || backingUp}
+                onClick={() => void onBackup()}
+              >
+                {t('historyExportBackup')}
+              </Button>
             </div>
           ) : null}
           <div className={styles.content}>
@@ -97,12 +138,8 @@ export const App = () => {
               <div className={styles.loadingView}>
                 {isMobile ? <MobileHeader /> : null}
                 <div className={styles.loadingState} role="status" aria-live="polite">
-                  <span>
-                    {(!ready ? initError : sessionLoadError)
-                      ? t(!ready ? 'sessionListLoadFailed' : 'sessionLoadFailed')
-                      : t('sessionLoading')}
-                  </span>
-                  {(!ready ? initError : sessionLoadError) ? (
+                  <span>{t(loadText)}</span>
+                  {canRetryLoad ? (
                     <Button
                       variant="outlined"
                       size="m"

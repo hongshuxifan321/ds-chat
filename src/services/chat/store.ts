@@ -86,7 +86,8 @@ type ChatState = {
   /** 仅列表元数据，按 updatedAt 降序；流式消息更新不会改变此数组。 */
   sessions: SessionSummary[]
   sessionCache: Record<string, Session>
-  sessionLoadErrors: Record<string, boolean>
+  /** 详情读取结果：`false` 未失败，`'error'` 读取失败可重试，`'lost'` 本机已没有这条记录（如存储被浏览器清掉）。 */
+  sessionLoadErrors: Record<string, false | 'error' | 'lost'>
   sessionSaveErrors: Record<string, boolean>
   /** null 表示新对话（欢迎页） */
   activeId: string | null
@@ -274,9 +275,13 @@ export const bindChatPersistence = () => {
   }
   document.addEventListener('visibilitychange', onVisibilityChange)
   window.addEventListener('pagehide', save)
+  // 浏览器关掉连接（回收存储、清站点数据）后重开并立刻重存一次：
+  // 用户可能没注意到提示就关了页面，这一存是最后的机会。
+  const unwatchConnection = db.onConnectionClosed(retrySaveSessions)
   return () => {
     document.removeEventListener('visibilitychange', onVisibilityChange)
     window.removeEventListener('pagehide', save)
+    unwatchConnection()
   }
 }
 
@@ -324,6 +329,8 @@ export const initChat = (): Promise<void> => {
   }
   const epoch = historyEpoch
   set({ initError: false })
+  // 存储被浏览器回收过就再申请一次；被拒绝也无妨，纯尽力而为。
+  db.requestPersistentStorage()
   initTask = (async () => {
     try {
       const summaries = await db.loadSessionSummaries()
@@ -343,6 +350,9 @@ export const initChat = (): Promise<void> => {
   })()
   return initTask
 }
+
+/** 列表里有、本机却读不到：存储被浏览器清空过，和「读取失败可重试」不是一回事。 */
+class MissingSessionError extends Error {}
 
 /** 同一会话合并并发读取；切换只改变 activeId，旧请求不会把界面切回去。 */
 const ensureSessionLoaded = (id: string): Promise<void> => {
@@ -368,7 +378,7 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
         return
       }
       if (!stored) {
-        throw new Error(`Session ${id} is missing from local storage`)
+        throw new MissingSessionError(`Session ${id} is missing from local storage`)
       }
       const settled = settleInterrupted(normalizeSession(stored))
       // 读取期间可能已在列表重命名，保留最新元数据，不能让旧读取覆盖它。
@@ -381,7 +391,12 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
       trimSessionCache()
     } catch (error) {
       if (epoch === historyEpoch && sessionLoads.get(id) === load) {
-        set((state) => ({ sessionLoadErrors: { ...state.sessionLoadErrors, [id]: true } }))
+        set((state) => ({
+          sessionLoadErrors: {
+            ...state.sessionLoadErrors,
+            [id]: error instanceof MissingSessionError ? 'lost' : 'error',
+          },
+        }))
         db.reportStorageError('read session')(error)
       }
     } finally {

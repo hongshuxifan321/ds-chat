@@ -34,7 +34,10 @@ export const zh = {
   sessionLoading: '正在加载对话...',
   sessionListLoadFailed: '对话列表加载失败，请重试',
   sessionLoadFailed: '对话加载失败，请重试',
-  sessionSaveFailed: '对话或附件尚未保存到本机，关闭页面可能丢失，请重试',
+  sessionLost:
+    '这条对话在本机已经找不到，本地数据可能被浏览器清理过。刷新页面后它会从列表里消失，需要恢复的话请重新导入备份。',
+  sessionSaveFailed:
+    '对话或附件尚未保存到本机，关闭页面可能丢失。请重试，或先导出备份。',
   sessionDeleteFailed: '删除对话失败，请重试',
   settings: '设置',
   appName: 'DS Chat',
@@ -195,6 +198,11 @@ export const zh = {
   historyImportFailed:
     '文件读取失败：可能是文件已损坏、下载不完整，或选的不是 DeepSeek 导出的历史对话 ZIP。请重新导出一份再导入。',
   historyExportFailed: '导出失败：{message}',
+  historyExportBackup: '先导出备份',
+  historyExported: '已导出，文件在浏览器的下载里',
+  historyExportSkipped:
+    '有 {count} 个对话这次没能导出（本机记录已丢失或读不出来），导出包只包含其余对话。',
+  historyExportNothing: '这些对话在本机已经找不到记录，没有可导出的内容。',
   exportAllLabel: '导出所有历史对话',
   historyExportDescription:
     '包含所有历史对话及本地图片原件；其他附件仅保留文件信息，不包含 API Key。',

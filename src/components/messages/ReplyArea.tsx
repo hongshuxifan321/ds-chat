@@ -65,8 +65,13 @@ export const ReplyArea = memo(function ReplyArea({
   hasResponse: boolean
 }) {
   useTranslate()
-  const [open, setOpen] = useState(true)
+  const [expandOverride, setExpandOverride] = useState<boolean | null>(null)
   const titleActive = streaming && !hasResponse
+  /*
+   * 思考期间展开，开始输出正文（思考结束）后自动收起，和官方一致；展开的思考文本会让
+   * 移动端的 DOM 显著变大。用户手动点过标题后就以手动状态为准，不再自动改变。
+   */
+  const open = expandOverride ?? titleActive
   useTicker(titleActive, 1000)
   if (view.steps.length === 0 && !(message.thinking && streaming)) {
     return null
@@ -78,7 +83,7 @@ export const ReplyArea = memo(function ReplyArea({
   return (
     <div className={styles.area}>
       {title ? (
-        <div className={styles.title} onClick={() => setOpen((value) => !value)}>
+        <div className={styles.title} onClick={() => setExpandOverride(!open)}>
           <span className={clsx(styles.titleIcon, stopped && styles.stoppedIcon)}>
             <IconThinkOutline16 />
           </span>

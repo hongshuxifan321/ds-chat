@@ -39,7 +39,8 @@ export const Menu = ({
             <div
               ref={floatingRef}
               className={styles.menu}
-              style={position ?? undefined}
+              // 测量出位置前先不显示：position: fixed 但没有偏移量时会停在左上角。
+              style={position ?? { visibility: 'hidden' }}
               role="menu"
             >
               {options.map((option) => (

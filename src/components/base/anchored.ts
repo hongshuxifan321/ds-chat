@@ -129,6 +129,13 @@ export const useAnchoredPosition = <T extends HTMLElement, F extends HTMLElement
       return
     }
     const rect = anchor.getBoundingClientRect()
+    /*
+     * 触发元素可能只在悬停时才显示（如会话行的省略号）。指针移到浮层上之后它的矩形
+     * 变成全 0，此时沿用上一次的位置；否则浮层会跟着塌成视口左上角。
+     */
+    if (rect.width === 0 && rect.height === 0) {
+      return
+    }
     const spaceAbove = rect.top - offset - VIEWPORT_PADDING
     const spaceBelow = window.innerHeight - rect.bottom - offset - VIEWPORT_PADDING
 

@@ -30,7 +30,7 @@ export const en = {
   contextCopyPrompt: 'Copy the summary prompt',
   contextCopyPromptDone: 'Copied — paste it into the box and send',
   contextSummaryPrompt:
-    'Please turn our conversation so far into a hand-off summary that I can continue from in a new chat. Requirements: 1) one sentence on what we were doing; 2) list what is already settled — conclusions, decisions, numbers or concrete wording used, with sources where possible; 3) list what is still open and what to do next; 4) keep verbatim snippets for code, formulas, citations and links, not just "changed it"; 5) leave out anything irrelevant to this task and do not retell the conversation.',
+    'Please turn our conversation so far into a hand-off summary that I can continue from in a new chat. Requirements: 1) in two or three sentences, say what we are talking about and where we are; 2) list what is already settled or agreed — settings, rules, my preferences, decisions already made; 3) list what is unfinished or still open; 4) copy anything that must stay exact (names, numbers, settings, terminology, snippets) verbatim rather than paraphrasing or summarising it; 5) leave out anything irrelevant to continuing and do not retell the conversation.',
   contextHowTo: 'What should I do?',
   contextWarnTitle: 'Context is at {percent} — nearly full',
   contextWarnBody:

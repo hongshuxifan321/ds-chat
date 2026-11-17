@@ -26,11 +26,11 @@ export const en = {
   contextCardStep2:
     '② Copy its answer: once it finishes, click the copy icon at the bottom left of that reply (two overlapping squares) to copy the whole summary.',
   contextCardStep3:
-    '③ Start a new chat: click "New chat" (the ⊕ at the top right on phones, the button at the top of the sidebar on desktop), paste the summary in and send, then ask what you actually need. This chat stays here, so you can come back and compare.',
+    '③ Start a new chat: click "New chat", paste the summary in and send, then ask what you actually need. This chat stays here, so you can come back and compare.',
   contextCopyPrompt: 'Copy the summary prompt',
   contextCopyPromptDone: 'Copied — paste it into the box and send',
   contextSummaryPrompt:
-    'Please summarise our conversation so far as a list of key points: 1) conclusions reached; 2) key numbers and where they came from; 3) open questions; 4) what I plan to do next. Keep it short and do not repeat the original text.',
+    'Please turn our conversation so far into a hand-off summary that I can continue from in a new chat. Requirements: 1) one sentence on what we were doing; 2) list what is already settled — conclusions, decisions, numbers or concrete wording used, with sources where possible; 3) list what is still open and what to do next; 4) keep verbatim snippets for code, formulas, citations and links, not just "changed it"; 5) leave out anything irrelevant to this task and do not retell the conversation.',
   contextHowTo: 'What should I do?',
   contextWarnTitle: 'Context is at {percent} — nearly full',
   contextWarnBody:

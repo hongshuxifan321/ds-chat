@@ -142,16 +142,11 @@
   max-width: 460px;
 }
 
-/* 三步说明较长：小屏上内容区自己滚，别让弹窗顶出屏幕 */
+/* 三步说明较长：小屏上内容区自己滚，弹窗与底部按钮始终留在屏幕里 */
 .cardMain {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 260px);
   overflow-y: auto;
   scrollbar-color: var(--scroll-color) transparent;
-}
-
-.copyPrompt {
-  align-self: flex-start;
-  margin-top: 8px;
 }
 
 .promptBox {

@@ -131,7 +131,17 @@ export const ContextCard = ({ usage, onClose }: { usage: ContextUsage; onClose: 
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <Modal title={t('contextCardTitle')} closable onClose={onClose} mainClassName={styles.cardMain}>
+    <Modal
+      title={t('contextCardTitle')}
+      closable
+      onClose={onClose}
+      mainClassName={styles.cardMain}
+      footer={
+        <Button variant="outlined" size="s" onClick={() => void copyPrompt()}>
+          {copied ? t('contextCopyPromptDone') : t('contextCopyPrompt')}
+        </Button>
+      }
+    >
       <div className={styles.card}>
         <div className={styles.cardValue}>
           {t('contextCardCurrent', values)}
@@ -149,14 +159,6 @@ export const ContextCard = ({ usage, onClose }: { usage: ContextUsage; onClose: 
         <p className={styles.cardText}>{t('contextCardStep3')}</p>
         {/* 复制失败时也能手动选中：指令原文直接摆出来 */}
         <div className={styles.promptBox}>{t('contextSummaryPrompt')}</div>
-        <Button
-          variant="outlined"
-          size="s"
-          className={styles.copyPrompt}
-          onClick={() => void copyPrompt()}
-        >
-          {copied ? t('contextCopyPromptDone') : t('contextCopyPrompt')}
-        </Button>
       </div>
     </Modal>
   )

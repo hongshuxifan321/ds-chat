@@ -34,7 +34,7 @@ export const zh = {
   topUp: '前往充值',
   balanceLabel: '余额',
   balanceGranted: '含赠金 {amount}',
-  balanceTopUp: '充值',
+  balanceTopUp: '去充值',
   balanceLoading: '查询中…',
   balanceInvalidKey: 'Key 无效，点击修改',
   balanceFailed: '获取失败，点击重试',

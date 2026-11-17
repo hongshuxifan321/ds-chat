@@ -1,6 +1,7 @@
 import { formatDate } from '../../utils/format.js'
 import * as db from './db.js'
 import type { ImportSource } from './history/archiveSource.js'
+import type { ImportProgress } from './history/importArchive.js'
 import { replaceHistory, useChatStore } from './store.js'
 import type { Session } from './types.js'
 
@@ -47,7 +48,7 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
  */
 export const importHistory = (
   source: ImportSource,
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (progress: ImportProgress) => void
 ): Promise<{ imported: number; skipped: number }> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')

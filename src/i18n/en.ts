@@ -163,6 +163,8 @@ export const en = {
     'Keep the screen on and stay on this page. The import runs here, and it stops if the page is suspended.',
   historyImportingPreparing: 'Reading archive…',
   historyImportingProgress: '{done} / {total} chats processed',
+  historyImportingFiles: 'Saved {done} / {total} attachments',
+  historyImportingSaving: 'Writing to local storage, keep this page open…',
   historyImportingProcessed: '{count} chats processed',
   historyImportInterrupted:
     'Import was interrupted, possibly because the page went to the background or the screen locked. Keep this page in the foreground and import again.',

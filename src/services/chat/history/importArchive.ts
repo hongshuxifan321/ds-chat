@@ -85,9 +85,18 @@ export const checkArchiveFormat = async (source: ImportSource): Promise<void> =>
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
  * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数。
  */
+/** 导入进度：会话与附件分两个阶段，最后是写入本地。界面据此换文案，避免停在 100% 不动 */
+export type ImportProgress =
+  | { phase: 'sessions'; done: number; total: number }
+  | { phase: 'files'; done: number; total: number }
+  | { phase: 'saving' }
+
+/** 会话目录下的图片条目 */
+const SESSION_FILE_PATH = /^chat_sessions\/[^/]+_files\//
+
 export const importArchive = async (
   source: ImportSource,
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (progress: ImportProgress) => void
 ): Promise<{ skipped: number }> => {
   if (source.kind === 'zip' && !(await isZipFile(source.file))) {
     fail(/\.json$/i.test(source.file.name) ? 'backupInsideArchive' : 'backupUnrecognized')
@@ -97,6 +106,9 @@ export const importArchive = async (
   let skipped = 0
   /** 会话总数，读中央目录得到；0 表示还没算出来 */
   let total = 0
+  /** 附件（图片）总数：会话导完后还要逐个解压保存，进度必须继续动 */
+  let fileTotal = 0
+  let savedFiles = 0
   let lastReport = 0
   /**
    * 界面既要有「在动」的反馈，又不能被几千个会话刷爆：
@@ -109,7 +121,15 @@ export const importArchive = async (
       return
     }
     lastReport = now
-    onProgress?.(imported.size, total)
+    onProgress?.({ phase: 'sessions', done: imported.size, total })
+  }
+  const reportFiles = (force = false) => {
+    const now = Date.now()
+    if (!force && now - lastReport < PROGRESS_INTERVAL_MS) {
+      return
+    }
+    lastReport = now
+    onProgress?.({ phase: 'files', done: savedFiles, total: fileTotal })
   }
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
@@ -129,9 +149,10 @@ export const importArchive = async (
   }
 
   try {
-    // 中央目录解析完先算出会话总数，进度才有分母（复用同一次解析，不多读一遍）。
+    // 中央目录解析完先算出会话与附件总数，进度才有分母（复用同一次解析，不多读一遍）。
     for await (const entry of openArchive(source, (paths) => {
       total = paths.filter((path) => parseSessionPath(path) !== null).length
+      fileTotal = paths.filter((path) => SESSION_FILE_PATH.test(path)).length
     })) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
@@ -174,6 +195,10 @@ export const importArchive = async (
         // 不认识的条目直接跳过——宁可少一个附件，也不要整份归档失败。
         const id = images.get(path)
         await (id === undefined ? skipEntry(entry) : saveImage(entry, id))
+        if (id !== undefined) {
+          savedFiles += 1
+          reportFiles(savedFiles === fileTotal)
+        }
       }
     }
   } catch (error) {
@@ -188,8 +213,14 @@ export const importArchive = async (
   if (listed.size !== entries.length || [...imported].some((id) => !listed.has(id))) {
     fail('backupIncomplete')
   }
-  // 会话全部写完，先把进度顶到终点：回填图片 MIME 可能还要一会儿
+  // 会话与附件都读完了，剩下回填 MIME 和替换正式数据：换一条文案，别让进度停在 100%
   report(true)
-  await db.updateStagingFileTypes(stored)
+  if (fileTotal > 0) {
+    reportFiles(true)
+  }
+  onProgress?.({ phase: 'saving' })
+  if (stored.size > 0) {
+    await db.updateStagingFileTypes(stored)
+  }
   return { skipped }
 }

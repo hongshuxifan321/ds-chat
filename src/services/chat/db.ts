@@ -231,6 +231,8 @@ export const commitStaging = async (): Promise<SessionSummary[]> => {
           await tx.objectStore('sessionSummaries').put(summary)
           summaries.push(toSessionSummary(summary))
         }
+        // 复制一条就删一条：大归档的会话与原件动辄上 GB，暂存与正式数据同时存在会撞上配额
+        await cursor.delete()
       }
       await tx.objectStore(from).clear()
     } catch (error) {

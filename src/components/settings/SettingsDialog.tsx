@@ -16,6 +16,7 @@ import {
   importHistory,
 } from '../../services/chat/backup.js'
 import type { ImportSource } from '../../services/chat/history/archiveSource.js'
+import type { ImportProgress } from '../../services/chat/history/importArchive.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
@@ -355,8 +356,9 @@ const ImportConfirm = ({
 }
 
 /**
- * 导入期间的进度弹窗：交代必须保持前台，并实时显示已处理的会话数。
+ * 导入期间的进度弹窗：交代必须保持前台，并按阶段显示进度。
  * 不可关闭——关闭只会让人以为导入停了，实际仍在跑。
+ * 会话读完还有「保存附件」和「写入本地」两段，只显示会话数会一直停在 100%。
  */
 const ImportProgress = ({
   historyImport,
@@ -365,23 +367,30 @@ const ImportProgress = ({
 }) => {
   const t = useTranslate()
   const progress = historyImport.progress
-  const total = progress?.total ?? 0
+  const counted = progress !== null && progress.phase !== 'saving' ? progress : null
+  const total = counted?.total ?? 0
   const percent =
-    progress && total > 0 ? Math.min(100, Math.round((progress.done / total) * 100)) : 0
+    counted && total > 0 ? Math.min(100, Math.round((counted.done / total) * 100)) : 0
+  const label = () => {
+    if (!progress) {
+      return t('historyImportingPreparing')
+    }
+    if (progress.phase === 'saving' || (progress.phase === 'files' && progress.total === 0)) {
+      return t('historyImportingSaving')
+    }
+    if (progress.phase === 'files') {
+      return t('historyImportingFiles', { done: progress.done, total: progress.total })
+    }
+    return progress.total > 0
+      ? t('historyImportingProgress', { done: progress.done, total: progress.total })
+      : t('historyImportingProcessed', { count: progress.done })
+  }
   return (
     <Modal
       title={t('historyImportingTitle')}
       className={styles.importConfirm}
       onClose={() => {}}
-      footer={
-        <div className={styles.importProgress}>
-          {progress === null
-            ? t('historyImportingPreparing')
-            : total > 0
-              ? t('historyImportingProgress', { done: progress.done, total })
-              : t('historyImportingProcessed', { count: progress.done })}
-        </div>
-      }
+      footer={<div className={styles.importProgress}>{label()}</div>}
     >
       <div className={styles.importConfirmText}>{t('historyImportingKeepAwake')}</div>
       <div
@@ -495,9 +504,6 @@ const SettingCell = ({
   )
 }
 
-/** 导入进度；null 表示还没算出总数（正在读归档目录） */
-type ImportProgressState = { done: number; total: number }
-
 /** 屏幕常亮句柄；不支持时返回 null，不影响导入 */
 type WakeSentinel = { release(): Promise<void> }
 
@@ -532,7 +538,7 @@ const describeError = (error: unknown): string => {
 const useHistoryImport = () => {
   const [source, setSource] = useState<ImportSource | null>(null)
   const [busy, setBusy] = useState(false)
-  const [progress, setProgress] = useState<ImportProgressState | null>(null)
+  const [progress, setProgress] = useState<ImportProgress | null>(null)
   const [status, setStatus] = useState<Status>(null)
   const importing = useRef(false)
   const hidden = useRef(false)
@@ -568,9 +574,7 @@ const useHistoryImport = () => {
     }
     document.addEventListener('visibilitychange', onHidden)
     try {
-      const { imported, skipped } = await importHistory(source, (done, total) =>
-        setProgress({ done, total })
-      )
+      const { imported, skipped } = await importHistory(source, setProgress)
       setStatus(
         skipped > 0
           ? { key: 'historyImportedPartial', params: { count: imported, skipped } }

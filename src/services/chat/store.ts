@@ -1,9 +1,28 @@
 import { create } from 'zustand'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
-import type { ChatModel, CreateMessageRequest } from '../api/types.js'
-import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
-import { cancelUpload, describeUploadError, uploadAttachment, useUploads } from '../attachments.js'
+import type {
+  AssistantBlockParam,
+  ChatModel,
+  CreateMessageRequest,
+  FileBlockParam,
+  MessageParam,
+  TextBlockParam,
+} from '../api/types.js'
+import {
+  extractFileIds,
+  getFileErrorCode,
+  getRejectedBlockPosition,
+  isRetryableApiError,
+  isUnsupportedImageError,
+} from '../api/errors.js'
+import {
+  cancelUpload,
+  describeUploadError,
+  notifyUploadNotice,
+  uploadAttachment,
+  useUploads,
+} from '../attachments.js'
 import { useSettings } from '../settings.js'
 import { appendBranch, getVisibleMessages, normalizeSession, selectVersion } from './branches.js'
 import * as db from './db.js'
@@ -814,7 +833,7 @@ const ensureServerId = async (apiKey: string, file: FileAttachment): Promise<str
   if (!blob) {
     return null
   }
-  return uploadAttachment(apiKey, file.id, blob, file.name, file.isImage)
+  return uploadAttachment(apiKey, file.id, blob, file.name, file.mimeType)
 }
 
 /** 用会话里的最新消息替换请求快照：重传前会重置附件的 serverId，快照必须跟着更新 */
@@ -963,6 +982,78 @@ const reuploadInvalidatedFiles = (sessionId: string, request: Request, error: un
   return true
 }
 
+/** 内容块引用的服务端 file_id；只有 image / document 块带文件引用 */
+const fileIdOf = (block: FileBlockParam | TextBlockParam | AssistantBlockParam): string | null => {
+  if (block.type !== 'image' && block.type !== 'document') {
+    return null
+  }
+  return block.source.file_id
+}
+
+/** 把服务端拒绝过的附件标记为不再发送；同一附件可能被多条消息共用，逐条标记 */
+const markUnsupportedFiles = (sessionId: string, serverIds: Set<string>) => {
+  let marked = 0
+  updateSession(sessionId, (session) => ({
+    ...session,
+    messages: session.messages.map((message) => {
+      if (message.role !== 'user') {
+        return message
+      }
+      let changed = false
+      const files = message.files.map((file) => {
+        if (!file.serverId || !serverIds.has(file.serverId) || file.unsupported) {
+          return file
+        }
+        changed = true
+        marked += 1
+        return { ...file, unsupported: true }
+      })
+      return changed ? { ...message, files } : message
+    }),
+  }))
+  if (marked > 0) {
+    persist(sessionId)
+  }
+  return marked
+}
+
+/**
+ * 服务端拒绝请求里的某个内容块时，把对应附件标记为不再发送，重发一次就能继续回答。
+ * 典型来源是历史里留着 API 解码不了的图片（svg、tiff、avif、无 MIME 的 HEIC 等）：
+ * 这张图每轮都会重新进入请求，不处理的话该会话之后每次提问都会失败。
+ * 报错点名了位置就只处理那一块，没点名时退化为把本次请求里的图片块都当作嫌疑。
+ */
+const dropRejectedFiles = (sessionId: string, messages: MessageParam[], error: unknown): number => {
+  if (!(error instanceof ApiError) || error.status !== 400) {
+    return 0
+  }
+  const blocksOf = (index: number) => {
+    const content = messages[index]?.content
+    return typeof content === 'string' ? [] : (content ?? [])
+  }
+  const targets = new Set<string>()
+  const position = getRejectedBlockPosition(error.message)
+  if (position) {
+    const block = blocksOf(position.message)[position.block]
+    const fileId = block ? fileIdOf(block) : null
+    // 点名的是文本块等非文件块，不按附件处理
+    if (!fileId) {
+      return 0
+    }
+    targets.add(fileId)
+  } else if (isUnsupportedImageError(error.message)) {
+    for (let index = 0; index < messages.length; index++) {
+      for (const block of blocksOf(index)) {
+        const fileId = fileIdOf(block)
+        if (fileId && block.type === 'image') {
+          targets.add(fileId)
+        }
+      }
+    }
+  }
+  return targets.size === 0 ? 0 : markUnsupportedFiles(sessionId, targets)
+}
+
 /** 重传前的退避等待；停止生成时立即返回，由调用方按已停止收尾 */
 const waitForRetry = (attempt: number, signal: AbortSignal) =>
   new Promise<void>((resolve) => {
@@ -1001,6 +1092,8 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
   streamFlushes.set(sessionId, flush)
 
   try {
+    /** 本次实际发出的请求内容，服务端点名内容块时用它定位附件 */
+    let sentMessages: MessageParam[] | null = null
     for (let attempt = 0; ; attempt += 1) {
       /** 附件补齐前出错属于上传失败，请求还没有发出 */
       let preparing = true
@@ -1022,6 +1115,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           initial.thinking ?? false,
           latestReminder
         )
+        sentMessages = messages
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
@@ -1074,11 +1168,24 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           break
         }
         // 附件失效：重新补传后重发。收到过内容块（含丢弃的客户端工具）后不自动重发。
-        if (
-          attempt < FILE_RETRY_LIMIT &&
-          !receivedContent &&
-          reuploadInvalidatedFiles(sessionId, request, error)
-        ) {
+        // 服务端拒绝某个附件本身（如解不开的图片）时，补传同一个原件没用，改为把它排除后重发。
+        let recovered = false
+        if (attempt < FILE_RETRY_LIMIT && !receivedContent) {
+          if (reuploadInvalidatedFiles(sessionId, request, error)) {
+            recovered = true
+          } else if (sentMessages) {
+            const dropped = dropRejectedFiles(sessionId, sentMessages, error)
+            if (dropped > 0) {
+              notifyUploadNotice({
+                type: 'error',
+                key: 'imageUnsupportedSkipped',
+                params: { count: dropped },
+              })
+              recovered = true
+            }
+          }
+        }
+        if (recovered) {
           await waitForRetry(attempt, controller.signal)
           if (controller.signal.aborted) {
             reply = settleReply(reply, 'stopped', Date.now())

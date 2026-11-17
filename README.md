@@ -56,6 +56,8 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 
 Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
 
+The API decodes images only as JPEG, PNG, GIF, and WebP. Other formats such as svg, tiff, and avif are sent as ordinary files; an image the service explicitly rejects is skipped with a notice instead of breaking every later turn in that conversation.
+
 History import and export in Settings use ZIP archives. Importing replaces all local conversations and attachments after confirmation and successful validation. An archive with partly malformed conversations still imports: the unreadable ones are skipped and reported while the rest replace local data; only archive-level problems (format version, missing index, corrupt ZIP) abort the whole import. On phones and macOS the download is often extracted automatically, so picking the extracted folder works as well. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
 
 Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
@@ -63,7 +65,6 @@ Settings → Data → Delete all chats clears all local conversations, original 
 ## Known issues
 
 - iOS Safari can show a blank first screen.
-- If a conversation holds an image in a format the API rejects, every later turn in that conversation fails. Start a new conversation and re-upload a supported format (JPEG, PNG, GIF, WebP).
 
 ## Development
 

@@ -14,17 +14,20 @@ import type {
   ReplyStatus,
   UserMessage,
 } from './types.js'
+import { isSendableImage } from '../imageFormat.js'
 
 /**
- * 文件按 Files API 的 file_id（附件的 serverId）引用：图片用 image 块，其余用 document 块。
+ * 文件按 Files API 的 file_id（附件的 serverId）引用：服务端能解码的图片用 image 块，其余用 document 块。
+ * 判断依据是格式而不是「是不是图片」——svg、tiff、avif 这些按 image 块发出去会被服务端判为不支持的图片，
+ * 且这张图之后每轮都会重新进入请求，导致整个会话无法继续。被服务端拒绝过的附件（unsupported）不再发送。
  * 发送前 streamReply 会先补齐 serverId；仍为 null 的是本地没有原件的附件，不进入请求。
  */
 const toFileBlocks = (files: FileAttachment[]): FileBlockParam[] =>
-  files.flatMap(({ serverId, isImage }) =>
-    serverId
+  files.flatMap(({ serverId, mimeType, name, unsupported }) =>
+    serverId && !unsupported
       ? [
           {
-            type: isImage ? 'image' : 'document',
+            type: isSendableImage(mimeType, name) ? 'image' : 'document',
             source: { type: 'file', file_id: serverId },
           },
         ]

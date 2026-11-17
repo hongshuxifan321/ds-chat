@@ -80,6 +80,24 @@ export const extractFileIds = (message: string): string[] => [
   ...new Set(message.match(/file-api-[\w-]+/g) ?? []),
 ]
 
+/** 服务端拒绝请求里的某个内容块时，报错文案带该块的位置：messages.<消息下标>.content.<块下标> */
+const BLOCK_POSITION = /messages\.(\d+)\.content\.(\d+)/
+
+/** 服务端解不开这张图片（只支持 JPEG、PNG、GIF、WebP） */
+const UNSUPPORTED_IMAGE = /You have uploaded an unsupported image/i
+
+/** 报错里点名的内容块位置，下标对应本次请求的 messages 数组 */
+export type RejectedBlockPosition = { message: number; block: number }
+
+/** 取报错点名的是哪个内容块；没有点名时为 null */
+export const getRejectedBlockPosition = (message: string): RejectedBlockPosition | null => {
+  const matched = BLOCK_POSITION.exec(message)
+  return matched ? { message: Number(matched[1]), block: Number(matched[2]) } : null
+}
+
+/** 报错说明图片格式不受支持 */
+export const isUnsupportedImageError = (message: string): boolean => UNSUPPORTED_IMAGE.test(message)
+
 /** 上传失败里能识别出具体原因的情况；其余统一按「上传失败」处理 */
 export type UploadErrorCode = 'fileCountLimit' | 'storageLimit' | 'parseFailed'
 

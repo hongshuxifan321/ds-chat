@@ -207,6 +207,8 @@ export const en = {
   uploadFileStatusUploading: 'Uploading...',
   uploadServerBusy: 'Server busy',
   uploadParseFailed: 'Parsing failed',
+  imageUnsupportedSkipped:
+    '{count} image(s) in this conversation cannot be read by the server and were skipped; later messages no longer send them',
   uploadFileCountLimit: 'Uploaded file limit reached ({limit} files). ',
   uploadStorageLimit: 'Uploaded file storage limit reached ({limit} GB). ',
   uploadDeleteFiles: 'Delete files',

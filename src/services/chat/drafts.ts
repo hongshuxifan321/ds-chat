@@ -53,7 +53,7 @@ const upload = (attachment: DraftAttachment, apiKey: string) => {
     attachment.id,
     attachment.file,
     attachment.file.name,
-    attachment.isImage
+    resolveMimeType(attachment.file)
   ).catch(() => {})
 }
 

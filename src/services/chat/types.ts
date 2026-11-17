@@ -23,6 +23,11 @@ export type FileAttachment = {
   isImage: boolean
   /** 具体 MIME；导入时没有原件或无法识别的为空字符串，不影响图片身份。 */
   mimeType: string
+  /**
+   * 服务端明确拒绝过这个附件（如无法解码的图片）：之后不再进入请求。
+   * 历史附件每轮都会重新发送，不标记的话一张坏图会让该会话之后每次提问都失败。
+   */
+  unsupported?: boolean
 }
 
 /** 本地消息的分支关系；字段缺省时按线性消息列表处理。 */

@@ -3,7 +3,10 @@ import type { LinkedMessage, TranslationMessage } from '../i18n/index.js'
 import { uploadFile } from './api/client.js'
 import { classifyApiError, getUploadErrorInfo, isRetryableApiError } from './api/errors.js'
 import type { FilePurpose } from './api/types.js'
+import { getFileExt, isSendableImage } from './imageFormat.js'
 import { ACCEPT_FILE_EXTS } from './uploadExts.js'
+
+export { getFileExt }
 
 /** 允许上传的扩展名，按扩展名白名单过滤，清单见 uploadExts.ts */
 export const ACCEPTED_EXTS = ACCEPT_FILE_EXTS
@@ -17,20 +20,19 @@ export const MAX_COUNT = 50
 /** 同时上传的文件数 */
 const MAX_CONCURRENT = 3
 
-/** 文件扩展名（小写，不含点）；没有扩展名时为空 */
-export const getFileExt = (name: string) => {
-  const dot = name.lastIndexOf('.')
-  return dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
-}
-
+/** 扩展名是否在上传白名单里 */
 export const isAcceptedExt = (name: string) => ACCEPTED_EXTS.includes(getFileExt(name))
 
 /** 需要服务端做版面解析的文档；其余非图片文件（纯文本、代码、表格、电子书）无需解析 */
 const LAYOUT_RECOGNITION_EXTS = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx'])
 
-/** 上传时的 purpose：图片不传，PDF 与 Word、PPT 做版面解析，其余按 user_data 上传 */
-export const getUploadPurpose = (name: string, isImage: boolean): FilePurpose | null => {
-  if (isImage) {
+/**
+ * 上传时的 purpose：服务端能解码的图片不传，PDF 与 Word、PPT 做版面解析，其余按 user_data 上传。
+ * 判断依据必须是「服务端能解码的格式」而不只是 MIME 以 image/ 开头：
+ * svg、tiff、avif 这类按图片上传后会被服务端判为不支持的图片，之后每轮请求都会失败。
+ */
+export const getUploadPurpose = (name: string, mimeType: string): FilePurpose | null => {
+  if (isSendableImage(mimeType, name)) {
     return null
   }
   return LAYOUT_RECOGNITION_EXTS.has(getFileExt(name)) ? 'rich_layout_recognition' : 'user_data'
@@ -38,7 +40,7 @@ export const getUploadPurpose = (name: string, isImage: boolean): FilePurpose | 
 
 /** 文件允许的最大体积（MB），按上传时的 purpose 区分 */
 const getMaxSizeMB = (file: File) =>
-  getUploadPurpose(file.name, isImage(resolveMimeType(file))) === 'user_data'
+  getUploadPurpose(file.name, resolveMimeType(file)) === 'user_data'
     ? MAX_USER_DATA_SIZE_MB
     : MAX_SIZE_MB
 
@@ -82,6 +84,13 @@ export const onUploadNotice = (listener: NoticeListener) => {
   }
 }
 
+/** 把需要额外提示的消息推给界面层（与上传配额提示共用同一通道） */
+export const notifyUploadNotice = (notice: LinkedMessage) => {
+  for (const listener of noticeListeners) {
+    listener(notice)
+  }
+}
+
 /** 删除已上传文件的接口文档 */
 const DELETE_FILE_DOCS_URL = 'https://api-docs.deepseek.com/api/delete-file'
 
@@ -121,7 +130,7 @@ const enqueueUpload = (
   apiKey: string,
   file: Blob,
   name: string,
-  isImage: boolean,
+  mimeType: string,
   signal: AbortSignal
 ) =>
   new Promise<string>((resolve, reject) => {
@@ -132,7 +141,7 @@ const enqueueUpload = (
       }
       try {
         const body = file instanceof File ? file : new File([file], name, { type: file.type })
-        resolve((await uploadFile(apiKey, body, getUploadPurpose(name, isImage), signal)).id)
+        resolve((await uploadFile(apiKey, body, getUploadPurpose(name, mimeType), signal)).id)
       } catch (error) {
         reject(error)
       }
@@ -169,7 +178,7 @@ export const uploadAttachment = (
   id: string,
   blob: Blob,
   name: string,
-  isImage: boolean
+  mimeType: string
 ): Promise<string> => {
   const current = pending.get(id)
   if (current) {
@@ -177,7 +186,7 @@ export const uploadAttachment = (
   }
   const controller = new AbortController()
   setTask(id, { status: 'uploading' })
-  const promise = enqueueUpload(apiKey, blob, name, isImage, controller.signal)
+  const promise = enqueueUpload(apiKey, blob, name, mimeType, controller.signal)
     .then((serverId) => {
       setTask(id, { status: 'done', serverId })
       return serverId
@@ -193,9 +202,7 @@ export const uploadAttachment = (
         })
         const notice = describeUploadQuota(error)
         if (notice) {
-          for (const listener of noticeListeners) {
-            listener(notice)
-          }
+          notifyUploadNotice(notice)
         }
       }
       throw error

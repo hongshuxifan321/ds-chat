@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import {
   IconDarkOutline16,
   IconDataOutline16,
@@ -15,6 +15,7 @@ import {
   exportHistory,
   importHistory,
 } from '../../services/chat/backup.js'
+import type { ImportSource } from '../../services/chat/history/archiveSource.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
@@ -135,7 +136,7 @@ const SettingsContent = () => {
           )}
         </div>
       </Modal>
-      {historyImport.file ? <ImportConfirm historyImport={historyImport} /> : null}
+      {historyImport.source ? <ImportConfirm historyImport={historyImport} /> : null}
       {historyImport.busy ? <ImportProgress historyImport={historyImport} /> : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
       {help ? <HelpModal topic={help} onClose={() => setHelp(null)} /> : null}
@@ -527,9 +528,9 @@ const describeError = (error: unknown): string => {
   return text.length > ERROR_DETAIL_MAX ? `${text.slice(0, ERROR_DETAIL_MAX)}…` : text
 }
 
-/** 选文件后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
+/** 选归档后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
 const useHistoryImport = () => {
-  const [file, setFile] = useState<File | null>(null)
+  const [source, setSource] = useState<ImportSource | null>(null)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<ImportProgressState | null>(null)
   const [status, setStatus] = useState<Status>(null)
@@ -543,12 +544,12 @@ const useHistoryImport = () => {
   }
 
   const confirm = async () => {
-    if (!file || importing.current) {
+    if (!source || importing.current) {
       return
     }
     importing.current = true
     hidden.current = false
-    setFile(null)
+    setSource(null)
     setBusy(true)
     setProgress(null)
     setStatus(null)
@@ -567,7 +568,7 @@ const useHistoryImport = () => {
     }
     document.addEventListener('visibilitychange', onHidden)
     try {
-      const { imported, skipped } = await importHistory(file, (done, total) =>
+      const { imported, skipped } = await importHistory(source, (done, total) =>
         setProgress({ done, total })
       )
       setStatus(
@@ -597,7 +598,15 @@ const useHistoryImport = () => {
     }
   }
 
-  return { file, busy, progress, status, select: setFile, cancel: () => setFile(null), confirm }
+  return {
+    source,
+    busy,
+    progress,
+    status,
+    select: setSource,
+    cancel: () => setSource(null),
+    confirm,
+  }
 }
 
 /** 教程弹窗的内容：标题与步骤都是文案键，便于中英切换 */
@@ -690,7 +699,16 @@ const SetupSteps = ({ onTopUpHelp }: { onTopUpHelp: () => void }) => {
   )
 }
 
-/** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
+/** 目录选择是 Chrome、Edge、桌面 Safari 与鸿蒙浏览器的私有属性，iOS Safari 不支持 */
+const FOLDER_PICKER_SUPPORTED =
+  typeof HTMLInputElement !== 'undefined' && 'webkitdirectory' in HTMLInputElement.prototype
+/** 目录选择属性不在 React 的类型定义里，只能按属性对象透传 */
+const FOLDER_INPUT_PROPS = {
+  webkitdirectory: '',
+  directory: '',
+} as InputHTMLAttributes<HTMLInputElement>
+
+/** 导入 = 覆盖：用于替换本地全部会话与附件，ZIP 与解压后的目录都能作为来源 */
 const ImportHistory = ({
   historyImport,
   disabled,
@@ -704,6 +722,7 @@ const ImportHistory = ({
 }) => {
   const t = useTranslate()
   const inputRef = useRef<HTMLInputElement>(null)
+  const folderRef = useRef<HTMLInputElement>(null)
 
   return (
     <SettingCell
@@ -719,16 +738,28 @@ const ImportHistory = ({
       status={historyImport.status}
       action={
         <>
-          <Button
-            variant="outlined"
-            size="m"
-            className={clsx(styles.cellButton, styles.uploadButton)}
-            disabled={disabled}
-            onClick={() => inputRef.current?.click()}
-          >
-            <IconUploadOutline14 />
-            {t(busy ? 'historyImporting' : 'upload')}
-          </Button>
+          <div className={styles.actionColumn}>
+            <Button
+              variant="outlined"
+              size="m"
+              className={clsx(styles.cellButton, styles.uploadButton)}
+              disabled={disabled}
+              onClick={() => inputRef.current?.click()}
+            >
+              <IconUploadOutline14 />
+              {t(busy ? 'historyImporting' : 'upload')}
+            </Button>
+            {FOLDER_PICKER_SUPPORTED ? (
+              <button
+                type="button"
+                className={styles.folderLink}
+                disabled={disabled}
+                onClick={() => folderRef.current?.click()}
+              >
+                {t('historyImportFolder')}
+              </button>
+            ) : null}
+          </div>
           <input
             ref={inputRef}
             type="file"
@@ -738,7 +769,21 @@ const ImportHistory = ({
               const file = event.target.files?.[0]
               event.target.value = ''
               if (file) {
-                historyImport.select(file)
+                historyImport.select({ kind: 'zip', file })
+              }
+            }}
+          />
+          <input
+            ref={folderRef}
+            type="file"
+            hidden
+            multiple
+            {...FOLDER_INPUT_PROPS}
+            onChange={(event) => {
+              const files = [...(event.target.files ?? [])]
+              event.target.value = ''
+              if (files.length > 0) {
+                historyImport.select({ kind: 'dir', files })
               }
             }}
           />

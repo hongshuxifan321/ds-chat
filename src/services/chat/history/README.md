@@ -15,6 +15,8 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 
 导入也支持“会话 JSON → 该会话图片”交错排列、索引在末尾的顺序。`user.json` 可位于 manifest 与会话之间，导入时跳过；本项目不导出账号信息。图片按 `FILE.export_path` 匹配。
 
+导入来源有两种，解析出的条目完全一致（见 [archiveSource.ts](./archiveSource.ts)）：官方导出的 ZIP，以及系统自动解压后留下的同名文件夹。手机与 macOS 常在下载时自动解开压缩包，用户手上只剩目录；目录来源按 `manifest.json` 所在层级确定归档根，用户选到外面一层也能导入，排序与 ZIP 约定一致。目录选择依赖 `webkitdirectory`，iOS Safari 不支持，那里只能选 ZIP。
+
 可选字段允许缺省；时间接受以 `Z` 结尾、带可选小数秒的 UTC 时间。校验后只保留已定义字段，未知类型或无法解析的内容片段直接丢弃。会话级字段不合法只让这一个会话被跳过并计入「跳过数」，manifest 版本、索引缺失和 ZIP 完整性这类归档级问题才让整次导入失败。
 
 ## 导入与替换

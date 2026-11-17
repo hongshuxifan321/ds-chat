@@ -1,4 +1,5 @@
 import * as db from '../db.js'
+import { openArchive, type ImportSource } from './archiveSource.js'
 import { BackupError, fail } from './errors.js'
 import type { SessionIndexEntry } from './format.js'
 import { INDEX_PATH, MANIFEST_PATH, USER_PATH, parseSessionPath } from './paths.js'
@@ -7,7 +8,6 @@ import { toLocalSession } from './toLocal.js'
 import {
   ArchiveError,
   isZipFile,
-  readArchive,
   readEntry,
   skipEntry,
   type ArchiveEntry,
@@ -54,16 +54,16 @@ const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
 const PROGRESS_INTERVAL_MS = 100
 
 /**
- * 检查 ZIP 格式、首个 manifest 条目及格式版本。
+ * 检查归档格式、首个 manifest 条目及格式版本。
  * 校验失败时保留正在生成的回答和现有暂存数据。
  */
-export const checkArchiveFormat = async (file: File): Promise<void> => {
-  if (!(await isZipFile(file))) {
+export const checkArchiveFormat = async (source: ImportSource): Promise<void> => {
+  if (source.kind === 'zip' && !(await isZipFile(source.file))) {
     // 手机文件选择器里点开压缩包后，选中里面的 JSON 是最常见的误操作
-    fail(/\.json$/i.test(file.name) ? 'backupInsideArchive' : 'backupUnrecognized')
+    fail(/\.json$/i.test(source.file.name) ? 'backupInsideArchive' : 'backupUnrecognized')
   }
   try {
-    for await (const entry of readArchive(file)) {
+    for await (const entry of openArchive(source)) {
       if (entry.path !== MANIFEST_PATH) {
         fail('backupUnrecognized')
       }
@@ -73,7 +73,8 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
   } catch (error) {
     throw error instanceof ArchiveError ? new BackupError('backupIncomplete') : error
   }
-  fail('backupUnrecognized')
+  // 目录来源里连 manifest 都没有：多半选错了层级
+  fail(source.kind === 'dir' ? 'backupFolderMissing' : 'backupUnrecognized')
 }
 
 /**
@@ -85,11 +86,11 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数。
  */
 export const importArchive = async (
-  file: File,
+  source: ImportSource,
   onProgress?: (done: number, total: number) => void
 ): Promise<{ skipped: number }> => {
-  if (!(await isZipFile(file))) {
-    fail('backupUnrecognized')
+  if (source.kind === 'zip' && !(await isZipFile(source.file))) {
+    fail(/\.json$/i.test(source.file.name) ? 'backupInsideArchive' : 'backupUnrecognized')
   }
   const imported = new Set<string>()
   /** 解析失败被跳过的会话数；这些会话的图片条目在下面一并跳过 */
@@ -129,7 +130,7 @@ export const importArchive = async (
 
   try {
     // 中央目录解析完先算出会话总数，进度才有分母（复用同一次解析，不多读一遍）。
-    for await (const entry of readArchive(file, (paths) => {
+    for await (const entry of openArchive(source, (paths) => {
       total = paths.filter((path) => parseSessionPath(path) !== null).length
     })) {
       const { path } = entry

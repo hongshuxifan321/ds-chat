@@ -1,5 +1,6 @@
 import { formatDate } from '../../utils/format.js'
 import * as db from './db.js'
+import type { ImportSource } from './history/archiveSource.js'
 import { replaceHistory, useChatStore } from './store.js'
 import type { Session } from './types.js'
 
@@ -40,20 +41,20 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
   })
 
 /**
- * 确认覆盖后调用：先检查 ZIP 格式与版本，校验失败时保留正在生成的回答；
- * 通过后从 ZIP 流式写入暂存，成功才替换原有会话与图片原件。
+ * 确认覆盖后调用：先检查归档格式与版本，校验失败时保留正在生成的回答；
+ * 通过后从 ZIP 或解压后的目录流式写入暂存，成功才替换原有会话与图片原件。
  * 返回成功导入的会话数与因结构异常被跳过的会话数。
  */
 export const importHistory = (
-  file: File,
+  source: ImportSource,
   onProgress?: (done: number, total: number) => void
 ): Promise<{ imported: number; skipped: number }> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
-    await checkArchiveFormat(file)
+    await checkArchiveFormat(source)
     let skipped = 0
     const imported = await replaceHistory(async () => {
-      skipped = (await importArchive(file, onProgress)).skipped
+      skipped = (await importArchive(source, onProgress)).skipped
     })
     return { imported, skipped }
   })

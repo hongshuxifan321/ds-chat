@@ -105,6 +105,7 @@ export const zh = {
   backupUnrecognized: '无法识别该文件，请选择 DeepSeek 导出的历史对话 ZIP 文件',
   backupInsideArchive:
     '你选的是压缩包里的文件。请返回上一级，选中整个 .zip 压缩包再导入。',
+  backupFolderMissing: '这个文件夹里没有 manifest.json。请重新选择，认准包含 chat_sessions 文件夹的那一层。',
   backupNewerVersion: '文件版本过新，请升级后再导入',
   backupInvalidVersion: '文件版本无效，无法导入',
   backupIncomplete: '文件内容不完整，无法导入',
@@ -132,11 +133,12 @@ export const zh = {
   apiKeyInvalid: 'API Key 无效，请检查后重试',
   apiKeyVerificationFailed: '校验失败：{message}',
   historyImport: '导入历史对话',
+  historyImportFolder: '选文件夹',
   historyImportConfirm: '确认导入',
   historyImportConfirmTitle: '确认导入历史对话？',
   historyImportConfirmDescription: '上传的历史对话会覆盖当前所有对话记录，是否确认导入？',
   historyImportDescription:
-    '导入历史对话会覆盖全部本地对话和附件，支持 DeepSeek 导出的 ZIP 文件。iPhone 上选的是整份 .zip，不是解压后的文件夹。',
+    '导入历史对话会覆盖全部本地对话和附件。可以选 DeepSeek 导出的 ZIP，也可以直接选解压出来的文件夹。',
   exportHelpLink: '怎么导出？',
   exportHelpTitle: '如何导出官方历史对话',
   exportHelpStep1: '网页版打开 chat.deepseek.com 并登录；用 App 也可以，只是菜单位置不同。',

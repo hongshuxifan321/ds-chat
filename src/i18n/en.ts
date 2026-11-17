@@ -112,6 +112,8 @@ export const en = {
   backupUnrecognized: 'File not recognized. Please choose a DeepSeek chat history ZIP.',
   backupInsideArchive:
     'You picked a file from inside the archive. Go back one level and select the whole .zip file.',
+  backupFolderMissing:
+    'This folder has no manifest.json. Please pick the folder that contains the chat_sessions folder.',
   backupNewerVersion: 'This file uses a newer version. Please update the app before importing.',
   backupInvalidVersion: 'The file version is invalid and cannot be imported.',
   backupIncomplete: 'The file is incomplete and cannot be imported.',
@@ -139,12 +141,13 @@ export const en = {
   apiKeyInvalid: 'Invalid API Key. Please check it and try again.',
   apiKeyVerificationFailed: 'Verification failed: {message}',
   historyImport: 'Import chat history',
+  historyImportFolder: 'Folder',
   historyImportConfirm: 'Import',
   historyImportConfirmTitle: 'Import chat history?',
   historyImportConfirmDescription:
     'The uploaded chat history will replace all your current chats. Import anyway?',
   historyImportDescription:
-    'Importing chat history replaces all local chats and attachments. Supports ZIP files exported from DeepSeek. On iPhone pick the whole .zip, not an unzipped folder.',
+    'Importing chat history replaces all local chats and attachments. Pick the ZIP exported from DeepSeek, or the folder it was unzipped into.',
   exportHelpLink: 'How to export?',
   exportHelpTitle: 'How to export your DeepSeek history',
   exportHelpStep1: 'Open chat.deepseek.com in a browser and sign in. The app works too.',

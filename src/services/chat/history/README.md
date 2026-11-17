@@ -56,6 +56,7 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 | ------------------------------------------------------------------------------ | ------------------------------ |
 | [format.ts](./format.ts)、[schema.ts](./schema.ts)                             | 归档类型与字段校验             |
 | [toLocal.ts](./toLocal.ts)、[toArchive.ts](./toArchive.ts)                     | 归档与本地消息转换             |
+| [archiveSource.ts](./archiveSource.ts)                                         | ZIP 与文件夹两种来源统一成条目流 |
 | [importArchive.ts](./importArchive.ts)、[exportArchive.ts](./exportArchive.ts) | 条目读取、暂存与归档组装       |
 | [zipReader.ts](./zipReader.ts)、[zipWriter.ts](./zipWriter.ts)                 | ZIP 读写及路径、大小、CRC 校验 |
 | [../backup.ts](../backup.ts)                                                   | 导入导出入口与串行队列         |

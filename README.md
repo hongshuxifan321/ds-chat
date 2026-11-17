@@ -17,8 +17,10 @@ HTTPS is required to install it to the home screen and open it offline; over HTT
 ## Differences from upstream
 
 - Adds `manifest.json`, a service worker, and icons: installable to the desktop or home screen, with an offline shell; chat requests always go straight to the API and are never cached.
-- Settings gains a create-key → top-up → paste-back walkthrough and a guide for exporting history from the official app.
-- Branding, title, theme colour, and icons are DS Chat; UI components and the chat protocol are left as upstream.
+- Settings gains a create-key → top-up → paste-back walkthrough, a guide for exporting history from the official app, and a more forgiving history import: a broken conversation is skipped instead of failing the whole archive, a folder left behind by automatic extraction can be imported too, and progress is reported by sessions, attachments, and commit.
+- A balance card at the bottom of the sidebar shows the account balance and bonus credit with a top-up link. It stays hidden until a key is set, keeps the amount in memory only, and refreshes after each reply.
+- On touch devices Enter inserts a newline instead of sending.
+- Branding, title, theme colour, and icons are DS Chat; the chat protocol is left as upstream.
 
 ## Getting started
 
@@ -53,9 +55,14 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 
 Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
 
-History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
+History import and export in Settings use ZIP archives. Importing replaces all local conversations and attachments after confirmation and successful validation. An archive with partly malformed conversations still imports: the unreadable ones are skipped and reported while the rest replace local data; only archive-level problems (format version, missing index, corrupt ZIP) abort the whole import. On phones and macOS the download is often extracted automatically, so picking the extracted folder works as well. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
 
 Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
+
+## Known issues
+
+- iOS Safari can show a blank first screen.
+- If a conversation holds an image in a format the API rejects, every later turn in that conversation fails. Start a new conversation and re-upload a supported format (JPEG, PNG, GIF, WebP).
 
 ## Development
 

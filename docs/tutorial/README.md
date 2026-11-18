@@ -11,7 +11,7 @@ PDF 只存一份（在 `public/notice/`），不在本目录再放一份，免�
 
 1. 改 `DS-Chat使用教程.docx`，在 Word 里「另存为 → PDF」
 2. 用新 PDF 覆盖 `public/notice/tutorial.pdf`
-3. 把 `src/content/notice.ts` 里的 `NOTICE_UPDATED` 换成当天日期——未读小红点会对所有人重新出现
+3. 顺手把 `src/content/notice.ts` 的 `NOTICE_UPDATED` 改成当天日期（只影响面板底部显示；未读小红点由正文指纹 `NOTICE_VERSION` 自动重新出现，改文案就会亮）
 4. 构建、本地验证、推送
 
 `public/sw.js` 给 `/notice/` 设了 network-first（请求带 `cache: 'no-cache'`），同名 PDF 换掉后用户刷新即拿到新的，断网时回落到上一次缓存的版本。

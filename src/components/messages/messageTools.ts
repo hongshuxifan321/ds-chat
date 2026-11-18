@@ -7,17 +7,22 @@ export type OutlineEntry = {
   text: string
 }
 
-export type OutlineValue = {
+/** 消息列表交给输入框上方那排小工具的接口：提问目录 + 回到底部 */
+export type ListTools = {
   entries: OutlineEntry[]
   /** 消息列表的滚动层：桌面端是列表本身，移动端是内层滚动层 */
   scroller: HTMLElement | null
   /** 滚到某条提问，并停掉「跟随底部」 */
   jump: (messageId: string) => void
+  /** 是否已经停在底部（决定要不要显示「回到底部」按钮） */
+  atBottom: boolean
+  /** 回到最新消息，并恢复跟随底部 */
+  jumpToBottom: () => void
 }
 
-export const MessageOutlineContext = createContext<OutlineValue | null>(null)
+export const MessageToolsContext = createContext<ListTools | null>(null)
 
-export const useMessageOutline = () => useContext(MessageOutlineContext)
+export const useMessageTools = () => useContext(MessageToolsContext)
 
 /** 目录里显示的文字：提问原文压成一行；只有附件时显示文件名 */
 const outlineText = (message: Extract<Message, { role: 'user' }>) => {

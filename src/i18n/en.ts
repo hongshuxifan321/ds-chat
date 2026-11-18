@@ -43,6 +43,7 @@ export const en = {
   contextDismiss: 'Got it',
   untitledChat: 'New chat',
   outlineTitle: 'Outline',
+  scrollToBottom: 'Scroll to bottom',
   sessionLoading: 'Loading chats...',
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',
   sessionLoadFailed: 'Unable to load this chat. Please try again.',

@@ -1,11 +1,4 @@
 /* 输入框上方的「目录」小胶囊：点开向上弹出提问列表 */
-.row {
-  display: flex;
-  align-self: flex-start;
-  max-width: 100%;
-  padding: 2px 4px 8px;
-}
-
 .capsule {
   display: inline-flex;
   align-items: center;
@@ -22,6 +15,12 @@
   cursor: pointer;
   user-select: none;
   outline: none;
+  /* 浮在消息上方，需要和背后的文字拉开层次 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  [data-ds-dark-theme] & {
+    box-shadow: none;
+  }
 
   &:hover {
     background-color: var(--dsw-alias-interactive-bg-hover);

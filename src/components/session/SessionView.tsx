@@ -5,6 +5,7 @@ import type { Session } from '../../services/chat/types.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
 import { MessageList } from '../messages/MessageList.js'
 import { MessageOutline } from '../messages/MessageOutline.js'
+import { ScrollToBottomButton } from '../messages/ScrollToBottomButton.js'
 import { MobileHeader } from './MobileHeader.js'
 import styles from './SessionView.module.css'
 
@@ -37,7 +38,10 @@ export const SessionView = ({
         streaming={streaming}
         footer={
           <div className={styles.inputContainer}>
-            <MessageOutline />
+            <div className={styles.tools}>
+              <MessageOutline />
+              <ScrollToBottomButton />
+            </div>
             <ChatInput sessionId={session.id} />
             <div className={styles.caveat}>{t('contentCaveat')}</div>
           </div>

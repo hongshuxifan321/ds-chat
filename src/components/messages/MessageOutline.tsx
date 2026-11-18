@@ -3,8 +3,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom'
 import { useTranslate } from '../../i18n/index.js'
 import { useAnchoredPosition, useDismiss } from '../base/anchored.js'
-import { useMessageOutline } from './outlineContext.js'
-import type { OutlineEntry } from './outlineContext.js'
+import { useMessageTools } from './messageTools.js'
+import type { OutlineEntry } from './messageTools.js'
 import styles from './MessageOutline.module.css'
 
 /** 内容区上沿往下这么多像素算「已经读到这条」 */
@@ -19,11 +19,11 @@ const EMPTY: OutlineEntry[] = []
  */
 export const MessageOutline = () => {
   const t = useTranslate()
-  const outline = useMessageOutline()
+  const tools = useMessageTools()
   const [open, setOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
-  const entries = outline?.entries ?? EMPTY
-  const scroller = outline?.scroller ?? null
+  const entries = tools?.entries ?? EMPTY
+  const scroller = tools?.scroller ?? null
   /** 每次打开时按条目顺序量一次消息元素，滚动时只比坐标 */
   const nodesRef = useRef<{ id: string; element: HTMLElement }[]>([])
 
@@ -126,12 +126,12 @@ export const MessageOutline = () => {
     }
   }, [entries.length, open])
 
-  if (!outline || entries.length < 2) {
+  if (!tools || entries.length < 2) {
     return null
   }
 
   return (
-    <div className={styles.row}>
+    <>
       <button
         ref={anchorRef}
         type="button"
@@ -163,7 +163,7 @@ export const MessageOutline = () => {
                   title={entry.text}
                   onClick={() => {
                     setOpen(false)
-                    outline.jump(entry.id)
+                    tools.jump(entry.id)
                   }}
                 >
                   {entry.text}
@@ -173,6 +173,6 @@ export const MessageOutline = () => {
             document.body
           )
         : null}
-    </div>
+    </>
   )
 }

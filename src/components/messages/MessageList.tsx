@@ -11,10 +11,10 @@ import { closeSearchPanel } from '../search/searchPanelState.js'
 import { AssistantMessage } from './AssistantMessage.js'
 import {
   buildOutlineEntries,
-  MessageOutlineContext,
+  MessageToolsContext,
   sameOutlineEntries,
   type OutlineEntry,
-} from './outlineContext.js'
+} from './messageTools.js'
 import { ScrollToBottomContext } from './scrollContext.js'
 import { UserMessage } from './UserMessage.js'
 import type { Message } from '../../services/chat/types.js'
@@ -55,6 +55,8 @@ export const MessageList = ({
   const contentRef = useRef<HTMLDivElement>(null)
   const stickyRef = useRef(true)
   const scrollTopRef = useRef(0)
+  /** 是否停在底部：决定要不要显示「回到底部」按钮 */
+  const [atBottom, setAtBottom] = useState(true)
   const restoreScrollRef = useRef<{ messageId: string; top: number } | null>(null)
   const messages = getVisibleMessages(session)
   // 滚动层在两套布局里是不同元素：桌面端是列表本身，移动端是内层滚动层。
@@ -107,7 +109,22 @@ export const MessageList = ({
     })
   }, [])
 
-  const outline = useMemo(() => ({ entries, jump, scroller }), [entries, jump, scroller])
+  // 回到最新消息并恢复跟随：之后内容继续增长也停在底部
+  const jumpToBottom = useCallback(() => {
+    stickyRef.current = true
+    const element = scrollRef.current
+    if (element) {
+      element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' })
+    }
+  }, [])
+
+  const tools = useMemo(
+    () => ({ entries, jump, scroller, atBottom, jumpToBottom }),
+    [atBottom, entries, jump, jumpToBottom, scroller]
+  )
+
+  // 换会话时列表会重新贴到底部；内容不够高时不会有滚动事件，这里直接复位
+  useLayoutEffect(() => setAtBottom(true), [session.id])
 
   const lastMessageId = messages.at(-1)?.id
   const scrollToBottom = useCallback(() => {
@@ -178,6 +195,7 @@ export const MessageList = ({
     const onScroll = () => {
       const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < STICKY_THRESHOLD
       // 仅在用户向上滚动时停止跟随底部，布局或内容增高时保持跟随状态。
+      setAtBottom(nearBottom)
       if (nearBottom) {
         stickyRef.current = true
       } else if (el.scrollTop < scrollTopRef.current) {
@@ -193,7 +211,7 @@ export const MessageList = ({
   const uploadRetryId = getUploadRetryId(messages, streaming)
   return (
     <ScrollToBottomContext.Provider value={scrollToBottom}>
-      <MessageOutlineContext.Provider value={outline}>
+      <MessageToolsContext.Provider value={tools}>
         <div className={styles.wrapper}>
           <div ref={isMobile ? undefined : setScrollElement} className={styles.container}>
             <div ref={isMobile ? setScrollElement : undefined} className={styles.scroll}>
@@ -229,7 +247,7 @@ export const MessageList = ({
             {footer}
           </div>
         </div>
-      </MessageOutlineContext.Provider>
+      </MessageToolsContext.Provider>
     </ScrollToBottomContext.Provider>
   )
 }

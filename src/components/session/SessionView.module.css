@@ -49,6 +49,20 @@
   );
 }
 
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  box-sizing: border-box;
+  padding: 2px 4px 8px;
+}
+
+/* 目录和「回到底部」都不显示时不占高度 */
+.tools:empty {
+  display: none;
+}
+
 .caveat {
   width: 100%;
   padding: 6px 0;

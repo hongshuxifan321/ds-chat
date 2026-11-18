@@ -1,10 +1,10 @@
 /**
- * 公告栏正文。改内容只动这个文件：改完把 NOTICE_UPDATED 换成当天日期，
- * 未读小红点就会对所有读过旧版的人重新出现。
+ * 公告栏正文。改内容只动这个文件：小红点的版本号是正文算出来的指纹，
+ * 改完一个字就会对所有读过旧版的人重新出现；NOTICE_UPDATED 只是面板底部显示的日期。
  * 面向普通用户写：术语后面都跟一句大白话。
  */
 
-/** 最后更新日期，同时充当未读标记的版本号 */
+/** 面板底部显示的「最后更新」日期 */
 export const NOTICE_UPDATED = '2026-11-18'
 
 export type NoticeBlock =
@@ -94,6 +94,11 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
         title: '余额卡片',
         text: '侧边栏底部显示余额和赠金，随时知道还能用多久。',
       },
+      {
+        kind: 'item',
+        title: '目录胶囊',
+        text: '输入框上方那个写着「目录」的小胶囊。点开就是这条对话问过的所有问题，想翻回哪一句点一下就到；问得越多越有用，省得一路往上滚。',
+      },
     ],
   },
   {
@@ -158,3 +163,19 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
 
 /** 教程 PDF 的地址与下载后的文件名；换教程直接替换 public/notice/tutorial.pdf */
 export const TUTORIAL_PDF = 'notice/tutorial.pdf'
+
+/** 内容指纹（FNV-1a）：正文改一个字就变 */
+const fingerprint = (text: string) => {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash.toString(16)
+}
+
+/**
+ * 未读标记的版本号：由正文算出来，改一个字就变，读过旧版的人会重新看到小红点。
+ * 所以改文案只改这个文件，不用记得同步版本号；NOTICE_UPDATED 只负责面板底部显示日期。
+ */
+export const NOTICE_VERSION = fingerprint(JSON.stringify(NOTICE_SECTIONS))

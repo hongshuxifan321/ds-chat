@@ -32,6 +32,7 @@ export const zh = {
   contextDismiss: '知道了',
   untitledChat: '新对话',
   outlineTitle: '目录',
+  scrollToBottom: '回到底部',
   sessionLoading: '正在加载对话...',
   sessionListLoadFailed: '对话列表加载失败，请重试',
   sessionLoadFailed: '对话加载失败，请重试',

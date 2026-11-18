@@ -1,0 +1,34 @@
+/* 往上翻看旧消息时，输入框上方右侧出现的「回到底部」圆形按钮 */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* 靠右：同一行里左边是「目录」胶囊 */
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 50%;
+  background-color: var(--dsw-alias-bg-base);
+  font-size: 14px;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  outline: none;
+  /* 浮在消息上方，需要和背后的文字拉开层次 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  [data-ds-dark-theme] & {
+    box-shadow: none;
+  }
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--dsw-alias-brand-text);
+  }
+}

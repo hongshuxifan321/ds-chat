@@ -110,17 +110,8 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
     title: '有些毛病暂时治不好',
     blocks: [
       {
-        kind: 'item',
-        title: '有些图片服务器不认',
-        text: 'DeepSeek 的服务器只认 JPG、PNG、GIF、WebP 四种图片。苹果手机拍的 HEIC 照片、动图、SVG、或者改了后缀名的图，发出去会被判成“不支持的图片”。我这边在发送前会尽量识别并跳过，但“到底认不认”最终是服务器说了算，网页端只能猜；猜错的时候，界面上会出现这么一段红字（服务器原文）：',
-      },
-      {
-        kind: 'quote',
-        text: 'messages.192.content.0: You have uploaded an unsupported image. Please make sure your image is valid and in a supported image format. (request_id: 99795f02-f403-4bd4-8f30-437010b921ae)',
-      },
-      {
         kind: 'text',
-        text: '这段文字是服务器返回的，我改不了它的措辞和语言。遇到就换一张图——用截图再发一次，一般就能过。',
+        text: '很多报错与问题都是由历史对话中的图片引起，恕难一一修复。',
       },
       {
         kind: 'item',

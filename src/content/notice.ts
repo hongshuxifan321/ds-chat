@@ -110,7 +110,8 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
     title: '有些毛病暂时治不好',
     blocks: [
       {
-        kind: 'text',
+        kind: 'item',
+        title: '图片是主要来源',
         text: '很多报错与问题都是由历史对话中的图片引起，恕难一一修复。',
       },
       {

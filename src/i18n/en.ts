@@ -82,6 +82,11 @@ export const en = {
   balanceLoading: 'Checking…',
   balanceInvalidKey: 'Invalid key, tap to edit',
   balanceFailed: 'Failed, tap to retry',
+  noticeTitle: 'Announcements',
+  noticeReadAction: 'Read',
+  noticeDownloadTutorial: 'Download tutorial PDF',
+  noticeTutorialFileName: 'DS Chat tutorial.pdf',
+  noticeUpdatedAt: 'Updated {date}',
   billingHowTo: 'How to top up?',
   setupStepCreateTitle: '1. Create an API Key',
   setupStepCreateDesc:

@@ -1,0 +1,242 @@
+/* 入口卡片：数值与余额卡一致（padding 8px 6px、1px 边、10px 圆角、左边距 6px），
+   下面紧跟余额卡，两张卡上下对齐 */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 8px 6px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--dsw-alias-brand-text);
+  }
+}
+
+.cardLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.cardDot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--dsw-alias-state-error-primary);
+}
+
+.cardAction {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-brand-text);
+}
+
+.card:hover .cardAction {
+  text-decoration: underline;
+}
+
+.dialog {
+  --modal-header-gap: 10px;
+  width: 720px;
+  height: 560px;
+  max-height: calc(100vh - 32px);
+  padding: 19px 24px 18px;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding-right: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.section + .section {
+  margin-top: 24px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.item {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.bullet {
+  flex-shrink: 0;
+  width: 4px;
+  height: 4px;
+  margin-top: 11px;
+  border-radius: 50%;
+  background-color: var(--dsw-alias-brand-primary);
+}
+
+.itemTitle {
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* 服务器原文：等宽、可选中复制，方便贴给别人看 */
+.quote {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: var(--dsw-alias-bg-layer-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 作者联系方式：和报错一样用浅底色块，标签窄一点好对齐 */
+.contact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: var(--dsw-alias-bg-layer-3);
+  list-style: none;
+}
+
+.contactRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.contactLabel {
+  flex-shrink: 0;
+  width: 60px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.contactValue {
+  color: var(--dsw-alias-label-primary);
+  user-select: text;
+}
+
+.contactLink {
+  color: var(--dsw-alias-brand-text);
+  text-decoration: none;
+  user-select: text;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.updated {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 下载按钮：外观与主按钮一致，但下载要走链接，不能用 <button> */
+.download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 72px;
+  height: var(--ds-control-height-m);
+  margin-left: auto;
+  padding: 0 14px;
+  border-radius: 4096px;
+  background-color: var(--dsw-alias-button-primary-fill);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary-foreground);
+  text-decoration: none;
+  user-select: none;
+
+  &:hover {
+    background-color: var(--dsw-alias-button-primary-hover);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--dsw-alias-button-primary-fill);
+  }
+}
+
+@media not all and (min-width: 768px) {
+  .dialog {
+    align-self: flex-end;
+    width: 100%;
+    max-width: none;
+    height: calc(100% - 64px);
+    max-height: 800px;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .main {
+    padding-right: 0;
+  }
+}

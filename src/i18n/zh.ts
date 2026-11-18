@@ -70,6 +70,11 @@ export const zh = {
   balanceLoading: '查询中…',
   balanceInvalidKey: 'Key 无效，点击修改',
   balanceFailed: '获取失败，点击重试',
+  noticeTitle: '公告栏',
+  noticeReadAction: '去阅读',
+  noticeDownloadTutorial: '下载教程 PDF',
+  noticeTutorialFileName: 'DS Chat 使用教程.pdf',
+  noticeUpdatedAt: '最后更新 {date}',
   billingHowTo: '如何充值？',
   setupStepCreateTitle: '1. 创建 API Key',
   setupStepCreateDesc:

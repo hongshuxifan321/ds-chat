@@ -66,6 +66,7 @@ export const en = {
   sessionExported: 'Saved: {name}',
   sessionExportFailed: 'Export failed: {message}',
   sessionExportEmpty: 'This chat is still empty — say something first',
+  sessionExportNotReady: 'The page is not ready yet, please try again',
   exportYou: 'You',
   exportSources: 'Sources',
   exportTurns: '{count} turns',

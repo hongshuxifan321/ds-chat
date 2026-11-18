@@ -31,7 +31,7 @@ export const SessionItem = memo(function SessionItem({
 
   const exportHtml = async () => {
     try {
-      // 导出要现拼整篇 HTML（公式、图表、图片），按需加载
+      // 导出要在界面里真实渲染一遍、再抓 DOM，按需加载
       const { downloadSessionHtml } = await import('../../services/export/download.js')
       const { name } = await downloadSessionHtml(session.id)
       showToast(t('sessionExported', { name }))
@@ -41,6 +41,8 @@ export const SessionItem = memo(function SessionItem({
         showToast(t('sessionLost'))
       } else if (reason === 'empty') {
         showToast(t('sessionExportEmpty'))
+      } else if (reason === 'render') {
+        showToast(t('sessionExportNotReady'))
       } else {
         showToast(
           t('sessionExportFailed', {

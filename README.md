@@ -22,7 +22,7 @@ HTTPS is required to install it to the home screen and open it offline; over HTT
 - A balance card at the bottom of the sidebar shows the account balance and bonus credit with a top-up link. It stays hidden until a key is set, keeps the amount in memory only, and refreshes after each reply.
 - Above the balance card, a notice card opens a panel covering how the site is built, where conversations and the key live, how billing works, what the app can do, known problems, features deliberately left out, and how to reach the author; an unread dot clears when the panel is opened, and the bottom of the panel downloads a tutorial PDF (replace `public/notice/tutorial.pdf` to update it — a same-named file is served fresh).
 - An outline pill above the composer opens a list of every question in the chat — five rows at a time, the rest scrolls — and the question you are reading is highlighted in blue; tap any row to jump to it. Next to it, a round jump-to-bottom button appears once you scroll up and returns you to the latest reply. Desktop and touch devices share the same click interaction.
-- The chat menu gains **Export as web page**: one conversation is written into a self-contained `.html` (inline styles, images as data URIs, math as MathML, Mermaid as inline SVG) that opens without a network or this app. Only questions and answers are written — thinking steps are left out.
+- The chat menu gains **Export as web page**: one conversation becomes a self-contained `.html` that looks like the app itself — it captures the conversation as actually rendered and inlines the stylesheet the page is using, so bubbles, type, code blocks, math and diagrams match, minus the buttons. Only questions and answers are written, and it opens without a network or this app.
 - On touch devices Enter inserts a newline instead of sending.
 - Branding, title, theme colour, and icons are DS Chat; the chat protocol is left as upstream.
 
@@ -54,7 +54,7 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 - Upload, paste, or drag and drop attachments; use voice input and read replies aloud. A live audio spectrum appears in the first row of the input area while recording on mobile.
 - Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams.
 - Question outline: an outline pill above the composer jumps to any question in the chat, and a round button jumps back to the latest reply.
-- Export as web page: a single conversation becomes a self-contained HTML file that reads offline; print to PDF through the browser if you need one.
+- Export as web page: a single conversation becomes a self-contained HTML file that keeps the app's own look and reads offline; print to PDF through the browser if you need one.
 - Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
 
 ## Data and storage

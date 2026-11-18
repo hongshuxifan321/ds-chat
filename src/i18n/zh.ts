@@ -54,6 +54,7 @@ export const zh = {
   sessionExported: '已导出：{name}',
   sessionExportFailed: '导出失败：{message}',
   sessionExportEmpty: '这条对话还没有内容，先聊两句再导出',
+  sessionExportNotReady: '界面还没渲染好，请稍后再试',
   exportYou: '你',
   exportSources: '参考来源',
   exportTurns: '共 {count} 轮对话',

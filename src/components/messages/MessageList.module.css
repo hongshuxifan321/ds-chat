@@ -1,3 +1,12 @@
+/* 目录挂在列表外层的容器上，滚动层保持原样 */
+.wrapper {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .container {
   flex: 1;
   min-height: 0;

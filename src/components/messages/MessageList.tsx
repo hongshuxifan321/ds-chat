@@ -9,6 +9,12 @@ import { selectMessageVersion } from '../../services/chat/store.js'
 import type { Session } from '../../services/chat/types.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
 import { AssistantMessage } from './AssistantMessage.js'
+import {
+  buildOutlineEntries,
+  MessageOutlineContext,
+  sameOutlineEntries,
+  type OutlineEntry,
+} from './outlineContext.js'
 import { ScrollToBottomContext } from './scrollContext.js'
 import { UserMessage } from './UserMessage.js'
 import type { Message } from '../../services/chat/types.js'
@@ -31,6 +37,8 @@ import styles from './MessageList.module.css'
 
 /** 距底部小于该值时视为在底部，流式内容增长时跟随 */
 const STICKY_THRESHOLD = 40
+/** 从目录跳到某条提问时，在它上面留出的空隙 */
+const JUMP_OFFSET = 12
 const EMPTY_VERSIONS: MessageVersions = { ids: [], index: -1 }
 
 export const MessageList = ({
@@ -43,12 +51,19 @@ export const MessageList = ({
   footer: React.ReactNode
 }) => {
   const isMobile = useIsMobile()
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const stickyRef = useRef(true)
   const scrollTopRef = useRef(0)
   const restoreScrollRef = useRef<{ messageId: string; top: number } | null>(null)
   const messages = getVisibleMessages(session)
+  // 滚动层在两套布局里是不同元素：桌面端是列表本身，移动端是内层滚动层。
+  // 通过回调 ref 交给目录，目录拿到的始终是当前生效的那个。
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
+  const setScrollElement = useCallback((element: HTMLDivElement | null) => {
+    scrollRef.current = element
+    setScroller(element)
+  }, [])
   const [previousVersions, setPreviousVersions] = useState(() =>
     buildMessageVersions(session, new Map())
   )
@@ -59,6 +74,41 @@ export const MessageList = ({
   if (versions !== previousVersions) {
     setPreviousVersions(versions)
   }
+
+  // 提问目录：按消息对象缓存文字，流式输出时数组身份不变，目录不会跟着每帧重绘
+  const outlineCacheRef = useRef(new Map<Message, OutlineEntry>())
+  const outlineRef = useRef<OutlineEntry[]>([])
+  const outlineSessionRef = useRef(session.id)
+  if (outlineSessionRef.current !== session.id) {
+    outlineSessionRef.current = session.id
+    outlineCacheRef.current = new Map()
+    outlineRef.current = []
+  }
+  const nextOutline = buildOutlineEntries(outlineCacheRef.current, messages)
+  if (!sameOutlineEntries(outlineRef.current, nextOutline)) {
+    outlineRef.current = nextOutline
+  }
+  const entries = outlineRef.current
+
+  const jump = useCallback((messageId: string) => {
+    const element = scrollRef.current
+    const target = element?.querySelector<HTMLElement>(
+      `[data-message-id="${CSS.escape(messageId)}"]`
+    )
+    if (!element || !target) {
+      return
+    }
+    // 先停掉跟随底部，否则流式内容继续增长会把视口拉回末尾
+    stickyRef.current = false
+    const offset = target.getBoundingClientRect().top - element.getBoundingClientRect().top
+    element.scrollTo({
+      top: Math.max(0, element.scrollTop + offset - JUMP_OFFSET),
+      behavior: 'smooth',
+    })
+  }, [])
+
+  const outline = useMemo(() => ({ entries, jump, scroller }), [entries, jump, scroller])
+
   const lastMessageId = messages.at(-1)?.id
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
@@ -143,39 +193,43 @@ export const MessageList = ({
   const uploadRetryId = getUploadRetryId(messages, streaming)
   return (
     <ScrollToBottomContext.Provider value={scrollToBottom}>
-      <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
-        <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
-          <div ref={contentRef} className={styles.column}>
-            {messages.map((message, index) =>
-              message.role === 'user' ? (
-                <UserMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  retryUploadId={uploadRetryId}
-                  isFirst={index === 0}
-                  isLast={index === lastIndex || index === lastIndex - 1}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
-              ) : (
-                <AssistantMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  isLast={index === lastIndex}
-                  streaming={streaming && index === lastIndex}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
-              )
-            )}
+      <MessageOutlineContext.Provider value={outline}>
+        <div className={styles.wrapper}>
+          <div ref={isMobile ? undefined : setScrollElement} className={styles.container}>
+            <div ref={isMobile ? setScrollElement : undefined} className={styles.scroll}>
+              <div ref={contentRef} className={styles.column}>
+                {messages.map((message, index) =>
+                  message.role === 'user' ? (
+                    <UserMessage
+                      key={message.id}
+                      sessionId={session.id}
+                      message={message}
+                      retryUploadId={uploadRetryId}
+                      isFirst={index === 0}
+                      isLast={index === lastIndex || index === lastIndex - 1}
+                      busy={streaming}
+                      versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                      onSelectVersion={selectVersion}
+                    />
+                  ) : (
+                    <AssistantMessage
+                      key={message.id}
+                      sessionId={session.id}
+                      message={message}
+                      isLast={index === lastIndex}
+                      streaming={streaming && index === lastIndex}
+                      busy={streaming}
+                      versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                      onSelectVersion={selectVersion}
+                    />
+                  )
+                )}
+              </div>
+            </div>
+            {footer}
           </div>
         </div>
-        {footer}
-      </div>
+      </MessageOutlineContext.Provider>
     </ScrollToBottomContext.Provider>
   )
 }

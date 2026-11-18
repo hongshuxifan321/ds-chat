@@ -21,6 +21,7 @@ HTTPS is required to install it to the home screen and open it offline; over HTT
 - Pinned chats get their own group at the top of the sidebar; the menu on each chat pins or unpins it. Pinning is kept on export and restored on import.
 - A balance card at the bottom of the sidebar shows the account balance and bonus credit with a top-up link. It stays hidden until a key is set, keeps the amount in memory only, and refreshes after each reply.
 - Above the balance card, a notice card opens a panel covering how the site is built, where conversations and the key live, how billing works, what the app can do, known problems, features deliberately left out, and how to reach the author; an unread dot clears when the panel is opened, and the bottom of the panel downloads a tutorial PDF (replace `public/notice/tutorial.pdf` to update it — a same-named file is served fresh).
+- An outline pill above the composer opens a list of every question in the chat — five rows at a time, the rest scrolls — and the question you are reading is highlighted in blue; tap any row to jump to it. Desktop and touch devices share the same click interaction.
 - On touch devices Enter inserts a newline instead of sending.
 - Branding, title, theme colour, and icons are DS Chat; the chat protocol is left as upstream.
 
@@ -51,6 +52,7 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 - Streaming replies, deep thinking, smart search, link reading, and source citations; stop generation or continue eligible replies.
 - Upload, paste, or drag and drop attachments; use voice input and read replies aloud. A live audio spectrum appears in the first row of the input area while recording on mobile.
 - Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams.
+- Question outline: an outline pill above the composer jumps to any question in the chat.
 - Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
 
 ## Data and storage

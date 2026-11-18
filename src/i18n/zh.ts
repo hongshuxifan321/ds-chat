@@ -31,6 +31,7 @@ export const zh = {
   contextDangerBody: '现在约 {used} / {window}，再问几句可能整轮失败，或者只回答一部分。先按「该怎么做？」的三步把要点带走，再开新对话接着聊。',
   contextDismiss: '知道了',
   untitledChat: '新对话',
+  outlineTitle: '目录',
   sessionLoading: '正在加载对话...',
   sessionListLoadFailed: '对话列表加载失败，请重试',
   sessionLoadFailed: '对话加载失败，请重试',

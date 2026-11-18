@@ -42,6 +42,7 @@ export const en = {
     'About {used} of {window} is in use. Another question or two may fail outright or come back partial. Follow the three steps under "What should I do?" to take the key points with you, then continue in a new chat.',
   contextDismiss: 'Got it',
   untitledChat: 'New chat',
+  outlineTitle: 'Outline',
   sessionLoading: 'Loading chats...',
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',
   sessionLoadFailed: 'Unable to load this chat. Please try again.',

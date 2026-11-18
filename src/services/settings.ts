@@ -38,15 +38,21 @@ const read = (key: string) => {
   }
 }
 
-const write = (key: string, value: string | null) => {
+/**
+ * 写入本机设置，写完立刻回读校验。
+ * 存储被禁用、配额满、无痕只读时 setItem 可能不报错但也没存进去，
+ * 所以返回是否真的落地——false 表示只在内存里生效，关掉页面就没了。
+ */
+const write = (key: string, value: string | null): boolean => {
   try {
     if (value === null) {
       localStorage.removeItem(key)
-    } else {
-      localStorage.setItem(key, value)
+      return localStorage.getItem(key) === null
     }
+    localStorage.setItem(key, value)
+    return localStorage.getItem(key) === value
   } catch {
-    // 存储不可用时只在内存中生效
+    return false
   }
 }
 
@@ -119,9 +125,11 @@ export const setTtsVoice = (ttsVoice: TtsVoice) => {
   useSettings.setState({ ttsVoice })
 }
 
-export const setApiKey = (apiKey: string | null) => {
-  write(KEYS.apiKey, apiKey)
+/** 保存 API Key；返回 false 表示本机存不住（无痕、存储被禁、空间满），这次只在内存里有效 */
+export const setApiKey = (apiKey: string | null): boolean => {
+  const saved = write(KEYS.apiKey, apiKey)
   useSettings.setState({ apiKey })
+  return saved
 }
 
 export const setThinking = (thinking: boolean) => {

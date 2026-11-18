@@ -185,6 +185,8 @@ export const en = {
   confirm: 'Confirm',
   apiKeyInvalid: 'Invalid API Key. Please check it and try again.',
   apiKeyVerificationFailed: 'Verification failed: {message}',
+  apiKeyStorageFailed:
+    'The key works, but this browser did not save it — you will have to paste it again after closing the page. Avoid private windows, and check whether the browser blocks site data or is set to clear it on close.',
   historyImport: 'Import chat history',
   historyImportFolder: 'Folder',
   historyImportConfirm: 'Import',

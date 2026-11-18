@@ -11,7 +11,11 @@ import styles from './Settings.module.css'
 export const useApiKeyEditor = () => {
   const apiKey = useSettings((state) => state.apiKey)
   const [editing, setEditing] = useState(false)
-  const form = useApiKeyForm(() => setEditing(false))
+  // 没存住时保持编辑态：否则已写入内存的 Key 会立刻变成掩码，错误提示就跟着一起被藏掉
+  const form = useApiKeyForm(
+    () => setEditing(false),
+    () => setEditing(true)
+  )
   return { apiKey, editing, setEditing, form, showInput: !apiKey || editing }
 }
 

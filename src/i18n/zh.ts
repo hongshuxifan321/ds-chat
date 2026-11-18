@@ -169,6 +169,8 @@ export const zh = {
   confirm: '确定',
   apiKeyInvalid: 'API Key 无效，请检查后重试',
   apiKeyVerificationFailed: '校验失败：{message}',
+  apiKeyStorageFailed:
+    'Key 已经生效，但本机没存下来——关掉页面就得重填。请别用无痕窗口，并检查浏览器是否禁止本站保存数据、或开了「关闭时清除浏览数据」。',
   historyImport: '导入历史对话',
   historyImportFolder: '选文件夹',
   historyImportConfirm: '确认导入',

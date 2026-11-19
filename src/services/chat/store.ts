@@ -24,6 +24,7 @@ import {
   useUploads,
 } from '../attachments.js'
 import { useSettings } from '../settings.js'
+import { forgetContextNotice } from '../contextDismiss.js'
 import { appendBranch, getVisibleMessages, normalizeSession, selectVersion } from './branches.js'
 import * as db from './db.js'
 import {
@@ -564,6 +565,7 @@ const removeSessionData = async (id: string): Promise<boolean> => {
     if (epoch !== historyEpoch) {
       return true
     }
+    forgetContextNotice(id)
     sessionLoads.delete(id)
     sessionAccess.delete(id)
     unsavedSessions.delete(id)

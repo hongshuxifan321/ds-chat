@@ -13,10 +13,11 @@ import {
   formatWindow,
   type ContextUsage,
 } from '../../services/chat/context.js'
+import {
+  dismissContextNotice,
+  isContextNoticeDismissed,
+} from '../../services/contextDismiss.js'
 import styles from './ContextMeter.module.css'
-
-/** 被用户关掉的提示条按会话记住：同一次页面会话里切回来不再弹 */
-const dismissed = new Set<string>()
 
 /** 已用比例分成三档：正常、接近上限、随时可能失败 */
 export const levelOf = (ratio: number): 'normal' | 'warn' | 'danger' =>
@@ -76,7 +77,11 @@ export const ContextNotice = ({
   const t = useTranslate()
   const [, forceRender] = useState(0)
   const level = levelOf(usage.ratio)
-  if (level === 'normal' || !sessionId || dismissed.has(sessionId)) {
+  if (level === 'normal' || !sessionId) {
+    return null
+  }
+  // 「知道了」按会话与档位持久化记住：同档位不再弹，涨到红档会再提醒一次
+  if (isContextNoticeDismissed(sessionId, level)) {
     return null
   }
   const percent = formatPercent(usage.ratio)
@@ -101,7 +106,7 @@ export const ContextNotice = ({
           variant="outlined"
           size="s"
           onClick={() => {
-            dismissed.add(sessionId)
+            dismissContextNotice(sessionId, level)
             forceRender((value) => value + 1)
           }}
         >

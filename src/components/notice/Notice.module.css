@@ -11,16 +11,6 @@
   padding: 8px 6px;
   border: 1px solid var(--dsw-alias-border-l1);
   border-radius: 10px;
-  background: none;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  cursor: pointer;
-  outline: none;
-
-  &:focus-visible {
-    box-shadow: 0 0 0 2px var(--dsw-alias-brand-text);
-  }
 }
 
 .cardLabel {
@@ -42,16 +32,25 @@
   background-color: var(--dsw-alias-state-error-primary);
 }
 
+/* 只有这一块可点：去掉原生按钮的框与底色，保留键盘可达 */
 .cardAction {
   flex-shrink: 0;
   margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
   font-size: 12px;
   line-height: 16px;
   color: var(--dsw-alias-brand-text);
-}
+  cursor: pointer;
+  outline: none;
 
-.card:hover .cardAction {
-  text-decoration: underline;
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
 }
 
 .dialog {

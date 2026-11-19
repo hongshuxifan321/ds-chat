@@ -43,9 +43,10 @@
 
 .label {
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 16px;
-  color: var(--dsw-alias-label-tertiary);
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
 }
 
 .value {

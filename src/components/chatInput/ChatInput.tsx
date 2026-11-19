@@ -16,10 +16,12 @@ import {
   getDraft,
   prepareDraftMessage,
   removeDraftAttachment,
+  replaceDraftAttachment,
   retryDraftAttachment,
   setDraftText,
   useDrafts,
 } from '../../services/chat/drafts.js'
+import type { DraftAttachment } from '../../services/chat/drafts.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import { IconButton } from '../base/IconButton.js'
 import { Tooltip } from '../base/Tooltip.js'
@@ -34,6 +36,7 @@ import { Spectrum } from './Spectrum.js'
 import { useTranslate } from '../../i18n/index.js'
 import { getContextUsage } from '../../services/chat/context.js'
 import { ContextCard, ContextMeter, ContextNotice } from './ContextMeter.js'
+import { ImageCropDialog } from './ImageCropDialog.js'
 import styles from './ChatInput.module.css'
 
 /** 输入框：自适应高度的文本框 + 文件 + 深度思考与智能搜索开关 + 语音输入 + 发送 / 停止 */
@@ -108,6 +111,29 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     },
     [sessionId]
   )
+  // 正在裁剪的附件：弹层里拿到的是快照，确认时按 id 回草稿里替换
+  const [cropping, setCropping] = useState<DraftAttachment | null>(null)
+  const cropFile = useCallback(
+    (id: string) => {
+      if (useChatStore.getState().importingHistory) {
+        return
+      }
+      const target = getDraft(sessionId).attachments.find((item) => item.id === id)
+      if (target?.previewUrl) {
+        setCropping(target)
+      }
+    },
+    [sessionId]
+  )
+  const confirmCrop = useCallback(
+    (cropped: File) => {
+      if (cropping) {
+        replaceDraftAttachment(sessionId, cropping.id, cropped, useSettings.getState().apiKey ?? '')
+      }
+      setCropping(null)
+    },
+    [cropping, sessionId]
+  )
   const dragging = useFileDrop(acceptFiles)
 
   /** 转写结果插入到光标处，并把光标移到插入内容之后 */
@@ -170,7 +196,12 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         }
       }}
     >
-      <DraftAttachments items={attachments} onRetry={retryFile} onRemove={removeFile} />
+      <DraftAttachments
+        items={attachments}
+        onRetry={retryFile}
+        onRemove={removeFile}
+        onCrop={cropFile}
+      />
       <ContextNotice sessionId={sessionId} usage={usage} onExplain={() => setExplain(true)} />
       <div className={styles.textareaWrapper}>
         <textarea
@@ -305,6 +336,14 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         </div>
       </div>
       {explain ? <ContextCard usage={usage} onClose={() => setExplain(false)} /> : null}
+      {cropping?.previewUrl ? (
+        <ImageCropDialog
+          file={cropping.file}
+          previewUrl={cropping.previewUrl}
+          onCancel={() => setCropping(null)}
+          onConfirm={confirmCrop}
+        />
+      ) : null}
       {dragging ? <DragMask /> : null}
     </div>
   )

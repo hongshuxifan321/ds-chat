@@ -141,6 +141,38 @@ export const removeDraftAttachment = (sessionId: string | null, attachmentId: st
   }))
 }
 
+/**
+ * 裁剪后用新图替换草稿里的附件。
+ * 换新 id 而不是复用旧 id：旧上传若刚好在收尾，它的回调仍会 `setTask(旧 id, done)`，
+ * 复用 id 会把旧图的 serverId 写回新任务，结果就是「看着是裁剪图，发出去是原图」。
+ */
+export const replaceDraftAttachment = (
+  sessionId: string | null,
+  attachmentId: string,
+  file: File,
+  apiKey: string
+) => {
+  const previous = getDraft(sessionId).attachments.find((item) => item.id === attachmentId)
+  if (!previous) {
+    return
+  }
+  // 先取消旧任务、释放旧预览，再挂新附件；顺序反了会留下孤立的 object URL
+  releaseAttachment(previous, true)
+  const mimeType = resolveMimeType(file)
+  const image = isImage(mimeType)
+  const replaced: DraftAttachment = {
+    id: createId(),
+    file,
+    isImage: image,
+    previewUrl: image ? URL.createObjectURL(file) : null,
+  }
+  updateDraft(sessionId, (draft) => ({
+    ...draft,
+    attachments: draft.attachments.map((item) => (item.id === attachmentId ? replaced : item)),
+  }))
+  upload(replaced, apiKey)
+}
+
 /** 发送成功后原件与 serverId 已交给会话，释放预览但保留上传完成态。 */
 export const clearSentDraft = (sessionId: string | null) => {
   getDraft(sessionId).attachments.forEach((attachment) => releaseAttachment(attachment, false))

@@ -5,7 +5,7 @@
  */
 
 /** 面板底部显示的「最后更新」日期 */
-export const NOTICE_UPDATED = '2026-11-18'
+export const NOTICE_UPDATED = '2026-11-19'
 
 export type NoticeBlock =
   /** 一段正文 */
@@ -103,6 +103,11 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
         kind: 'item',
         title: '导出为网页',
         text: '在对话列表里点某条对话右边的「⋯」，选「导出为网页」，会下载一个 .html 文件。打开它看到的和现在这个界面一模一样——同样的气泡、字号、代码块和公式，只是省略了按钮，也不联网、不用装软件。想发给别人，可以打开后按 Ctrl+P 存成 PDF（手机上是分享 → 打印）。',
+      },
+      {
+        kind: 'item',
+        title: '裁剪图片',
+        text: '发图之前想裁掉多余的部分，点输入框上方那张缩略图就行：在图上拖一个框，只留框里的内容。裁完会重新存成一张普通图片，体积通常比原图小得多，也不容易碰上“格式不被支持”的毛病。',
       },
     ],
   },

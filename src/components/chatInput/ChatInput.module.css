@@ -63,9 +63,22 @@
   }
 }
 
+/* 点缩略图进裁剪：按钮铺满缩略图，视觉上不出现任何额外装饰 */
+.cropTarget {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
 .uploading {
   position: absolute;
   inset: 0;
+  /* 遮罩只是视觉层：不能挡住缩略图的裁剪入口 */
+  pointer-events: none;
   background-color: rgba(0, 0, 0, 0.3);
 
   &::after {

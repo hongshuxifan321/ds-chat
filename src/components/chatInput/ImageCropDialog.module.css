@@ -1,0 +1,74 @@
+/* 双重类名提高特异性：Modal 的 .content 固定 380px，这里要覆盖它 */
+.dialog.dialog {
+  width: min(680px, calc(100vw - 32px));
+}
+
+.hint {
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.canvas {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  line-height: 0;
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 选框外压暗：超大 box-shadow 会被 .canvas 的 overflow 裁掉，只覆盖图片区域 */
+.shade {
+  position: absolute;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.45);
+  outline: 1px solid rgba(255, 255, 255, 0.9);
+  cursor: crosshair;
+}
+
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.nw {
+  top: 2px;
+  left: 2px;
+  cursor: nwse-resize;
+}
+
+.ne {
+  top: 2px;
+  right: 2px;
+  cursor: nesw-resize;
+}
+
+.sw {
+  bottom: 2px;
+  left: 2px;
+  cursor: nesw-resize;
+}
+
+.se {
+  right: 2px;
+  bottom: 2px;
+  cursor: nwse-resize;
+}

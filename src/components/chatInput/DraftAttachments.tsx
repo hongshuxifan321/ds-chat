@@ -15,10 +15,12 @@ export const DraftAttachments = memo(function DraftAttachments({
   items,
   onRetry,
   onRemove,
+  onCrop,
 }: {
   items: DraftAttachment[]
   onRetry: (id: string) => void
   onRemove: (id: string) => void
+  onCrop: (id: string) => void
 }) {
   if (items.length === 0) {
     return null
@@ -31,6 +33,7 @@ export const DraftAttachments = memo(function DraftAttachments({
           item={item}
           onRetry={() => onRetry(item.id)}
           onRemove={() => onRemove(item.id)}
+          onCrop={() => onCrop(item.id)}
         />
       ))}
     </div>
@@ -42,10 +45,12 @@ const AttachmentItem = ({
   item,
   onRetry,
   onRemove,
+  onCrop,
 }: {
   item: DraftAttachment
   onRetry: () => void
   onRemove: () => void
+  onCrop: () => void
 }) => {
   const t = useTranslate()
   const task = useUploads((state) => state.tasks[item.id] ?? UPLOADING)
@@ -62,7 +67,19 @@ const AttachmentItem = ({
       className={clsx(styles.attachment, failed && styles.attachmentFailed)}
       title={error ?? item.file.name}
     >
-      <img src={item.previewUrl} alt={item.file.name} />
+      {/* 点缩略图进裁剪；失败态下整块被重试/原因浮层盖住，所以那时不开放入口 */}
+      {failed ? (
+        <img src={item.previewUrl} alt={item.file.name} />
+      ) : (
+        <button
+          type="button"
+          className={styles.cropTarget}
+          aria-label={t('cropImage')}
+          onClick={onCrop}
+        >
+          <img src={item.previewUrl} alt={item.file.name} />
+        </button>
+      )}
       {status === 'uploading' ? <div className={styles.uploading} /> : null}
       {failed && retry ? (
         <Tooltip content={retryLabel}>

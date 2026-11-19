@@ -46,7 +46,8 @@
   box-sizing: border-box;
 }
 
-/* 四角：L 形直角框，只有朝内的两条边有描边 */
+/* 四角：L 形直角框，只有朝内的两条边有描边。
+   drop-shadow 沿着 L 的实际形状描一圈深色，浅色图片上也能看见 */
 .nw,
 .ne,
 .sw,
@@ -54,6 +55,7 @@
   width: 22px;
   height: 22px;
   border: 0 solid #fff;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.8));
 }
 
 .nw {
@@ -98,6 +100,7 @@
     position: absolute;
     border-radius: 2px;
     background-color: #fff;
+    filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.8));
   }
 }
 
@@ -164,3 +167,4 @@
     right: 0;
   }
 }
+

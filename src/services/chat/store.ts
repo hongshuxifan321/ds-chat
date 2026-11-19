@@ -812,7 +812,7 @@ export const retryUpload = (sessionId: string, messageId: string) => {
 type Request = { history: Message[]; question: UserMessage; prefix?: AssistantMessage }
 
 /** 把补传得到的 serverId 写回会话里所有引用同一附件的消息（编辑、重新生成会共用附件） */
-const saveServerIds = (sessionId: string, serverIds: Map<string, string>) => {
+const updateServerIds = (sessionId: string, serverIds: Map<string, string>) => {
   if (serverIds.size === 0) {
     return
   }
@@ -829,7 +829,6 @@ const saveServerIds = (sessionId: string, serverIds: Map<string, string>) => {
         : message
     ),
   }))
-  persist(sessionId)
 }
 
 /**
@@ -893,8 +892,9 @@ const prepareFiles = async (sessionId: string, request: Request, signal: AbortSi
     })
   )
   void uploads.then(() => {
-    if (epoch === historyEpoch) {
-      saveServerIds(sessionId, serverIds)
+    if (epoch === historyEpoch && serverIds.size > 0) {
+      updateServerIds(sessionId, serverIds)
+      persist(sessionId)
     }
   })
   const results = await Promise.race([uploads, aborted])
@@ -911,28 +911,25 @@ const prepareFiles = async (sessionId: string, request: Request, signal: AbortSi
       }
     }
   }
-  for (const file of pending.values()) {
-    signal.throwIfAborted()
-    try {
-      const serverId = await Promise.race([ensureServerId(apiKey, file), aborted])
-      if (serverId) {
-        serverIds.set(file.id, serverId)
-        saveServerIds(sessionId, new Map([[file.id, serverId]]))
-      }
-    } catch {
+  const historyServerIds = new Map<string, string>()
+  try {
+    for (const file of pending.values()) {
       signal.throwIfAborted()
+      try {
+        const serverId = await Promise.race([ensureServerId(apiKey, file), aborted])
+        if (serverId) {
+          historyServerIds.set(file.id, serverId)
+        }
+      } catch {
+        signal.throwIfAborted()
+      }
     }
+  } finally {
+    // 由 streamReply 的发送前保存或停止收尾一次写入，保留已经补传成功的部分。
+    updateServerIds(sessionId, historyServerIds)
   }
 
-  // 用补齐后的会话重新取历史与提问，保证请求里都是 serverId
-  const session = getSession(sessionId)
-  const resolve = <T extends Message>(message: T): T =>
-    (session?.messages.find((m) => m.id === message.id) as T | undefined) ?? message
-  return {
-    history: request.history.map(resolve),
-    question: resolve(request.question),
-    prefix: request.prefix,
-  }
+  return refreshRequest(sessionId, request)
 }
 
 /** 本次请求实际会用到的服务端 file_id */

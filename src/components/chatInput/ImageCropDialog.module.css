@@ -32,43 +32,135 @@
   -webkit-user-drag: none;
 }
 
-/* 选框外压暗：超大 box-shadow 会被 .canvas 的 overflow 裁掉，只覆盖图片区域 */
+/* 选框外压暗：超大 box-shadow 被 .canvas 的 overflow 裁掉，只覆盖图片区域。
+   边框由四个 L 角和四条短条画出来，这里不再描一圈实线 */
 .shade {
   position: absolute;
   box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.45);
-  outline: 1px solid rgba(255, 255, 255, 0.9);
   cursor: crosshair;
 }
 
+/* 把手都是透明的命中区，形状靠下面的边框/底色画出来 */
 .handle {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+/* 四角：L 形直角框，只有朝内的两条边有描边 */
+.nw,
+.ne,
+.sw,
+.se {
+  width: 22px;
+  height: 22px;
+  border: 0 solid #fff;
 }
 
 .nw {
-  top: 2px;
-  left: 2px;
+  top: 0;
+  left: 0;
+  border-left-width: 2px;
+  border-top-width: 2px;
   cursor: nwse-resize;
 }
 
 .ne {
-  top: 2px;
-  right: 2px;
+  top: 0;
+  right: 0;
+  border-right-width: 2px;
+  border-top-width: 2px;
   cursor: nesw-resize;
 }
 
 .sw {
-  bottom: 2px;
-  left: 2px;
+  bottom: 0;
+  left: 0;
+  border-left-width: 2px;
+  border-bottom-width: 2px;
   cursor: nesw-resize;
 }
 
 .se {
-  right: 2px;
-  bottom: 2px;
+  right: 0;
+  bottom: 0;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
   cursor: nwse-resize;
+}
+
+/* 四边：命中区放大到 36px；短条本身贴着选框内侧边界画，和 L 形直角对齐 */
+.n,
+.s,
+.w,
+.e {
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 2px;
+    background-color: #fff;
+  }
+}
+
+.n,
+.s {
+  left: 50%;
+  width: 36px;
+  height: 16px;
+  margin-left: -18px;
+  cursor: ns-resize;
+
+  &::after {
+    left: 50%;
+    width: 22px;
+    height: 3px;
+    transform: translateX(-50%);
+  }
+}
+
+.n {
+  top: 0;
+
+  &::after {
+    top: 0;
+  }
+}
+
+.s {
+  bottom: 0;
+
+  &::after {
+    bottom: 0;
+  }
+}
+
+.w,
+.e {
+  top: 50%;
+  width: 16px;
+  height: 36px;
+  margin-top: -18px;
+  cursor: ew-resize;
+
+  &::after {
+    top: 50%;
+    width: 3px;
+    height: 22px;
+    transform: translateY(-50%);
+  }
+}
+
+.w {
+  left: 0;
+
+  &::after {
+    left: 0;
+  }
+}
+
+.e {
+  right: 0;
+
+  &::after {
+    right: 0;
+  }
 }

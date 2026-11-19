@@ -8,7 +8,8 @@ import { showToast } from '../base/toastState.js'
 import styles from './ImageCropDialog.module.css'
 
 type Box = { x: number; y: number; width: number; height: number }
-type Corner = 'nw' | 'ne' | 'sw' | 'se'
+/** 四角 + 四条边：角改两条边，边只改一条 */
+type Corner = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e'
 type Drag = {
   mode: 'new' | 'resize'
   corner?: Corner
@@ -118,15 +119,19 @@ export const ImageCropDialog = ({
       setBox(fitBox({ x: left, y: top, width, height }, size))
       return
     }
-    // 拖角：改动对应的两条边，另一侧保持不动
+    // 拖角或拖边：按 handle 的字母判断哪几条边跟着动，另一侧保持不动
     const { origin } = state
     const right = origin.x + origin.width
     const bottom = origin.y + origin.height
-    const corners = state.corner ?? 'se'
-    const nextX = corners === 'nw' || corners === 'sw' ? clamp(origin.x + dx, 0, right - MIN_BOX) : origin.x
-    const nextY = corners === 'nw' || corners === 'ne' ? clamp(origin.y + dy, 0, bottom - MIN_BOX) : origin.y
-    const nextRight = corners === 'ne' || corners === 'se' ? clamp(right + dx, nextX + MIN_BOX, size.width) : right
-    const nextBottom = corners === 'sw' || corners === 'se' ? clamp(bottom + dy, nextY + MIN_BOX, size.height) : bottom
+    const handle = state.corner ?? 'se'
+    const movesLeft = handle.includes('w')
+    const movesRight = handle.includes('e')
+    const movesTop = handle.includes('n')
+    const movesBottom = handle.includes('s')
+    const nextX = movesLeft ? clamp(origin.x + dx, 0, right - MIN_BOX) : origin.x
+    const nextY = movesTop ? clamp(origin.y + dy, 0, bottom - MIN_BOX) : origin.y
+    const nextRight = movesRight ? clamp(right + dx, nextX + MIN_BOX, size.width) : right
+    const nextBottom = movesBottom ? clamp(bottom + dy, nextY + MIN_BOX, size.height) : bottom
     setBox({ x: nextX, y: nextY, width: nextRight - nextX, height: nextBottom - nextY })
   }
 
@@ -195,7 +200,8 @@ export const ImageCropDialog = ({
             className={styles.shade}
             style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
           >
-            {(['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
+            {/* 先画四条边、后画四角：靠边的交点上，角优先响应 */}
+            {(['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se'] as const).map((corner) => (
               <span key={corner} className={clsx(styles.handle, styles[corner])} data-handle={corner} />
             ))}
           </div>

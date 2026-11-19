@@ -120,15 +120,16 @@ export const BalanceCard = () => {
             <span className={styles.value}>
               {balance ? `${symbol(balance.currency)}${money(balance.total)}` : t('balanceLoading')}
             </span>
+            {/* 赠金跟在余额后面同一行，省出的高度留给上面那张公告卡 */}
+            {balance && balance.granted > 0 ? (
+              <span className={styles.granted}>
+                {t('balanceGranted', {
+                  amount: `${symbol(balance.currency)}${money(balance.granted)}`,
+                })}
+              </span>
+            ) : null}
           </span>
         )}
-        {!failed && balance && balance.granted > 0 ? (
-          <span className={styles.granted}>
-            {t('balanceGranted', {
-              amount: `${symbol(balance.currency)}${money(balance.granted)}`,
-            })}
-          </span>
-        ) : null}
       </button>
       <a className={styles.topUp} href={PLATFORM_LINKS.topUp} target="_blank" rel="noreferrer">
         {t('balanceTopUp')}

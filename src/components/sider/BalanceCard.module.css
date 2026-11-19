@@ -67,8 +67,9 @@
   opacity: 0.5;
 }
 
+/* 赠金跟在余额后面同一行：窄到放不下时先压它，数字不会被挤掉 */
 .granted {
-  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   font-size: 12px;
   line-height: 16px;

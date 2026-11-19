@@ -222,6 +222,9 @@ export const importArchive = async (
   if (listed.size !== entries.length || [...imported].some((id) => !listed.has(id))) {
     fail('backupIncomplete')
   }
+  if (imported.size === 0 && (total > 0 || listed.size > 0)) {
+    fail('backupIncomplete')
+  }
   // 会话与附件都读完了，剩下回填 MIME 和替换正式数据：换一条文案，别让进度停在 100%
   report(true)
   if (fileTotal > 0) {

@@ -2,6 +2,14 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
+    <!-- 只允许同源脚本与外链 DeepSeek 官方接口。放开的三处都有实际用途：
+         style 内联（KaTeX / Mermaid 写行内 style）、img 的 data:/blob:（附件缩略图与 SVG）、
+         connect 的 blob:/data:（导出为网页时要 fetch 附件原图的 blob URL）。
+         目的是把「万一出现 XSS」的影响面压到最小——Key 就在 localStorage 里。 -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://api.deepseek.com blob: data:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#4D6BFE" />
     <meta name="description" content="自带 API Key 的 DeepSeek 对话客户端。非官方项目，与深度求索无关。" />

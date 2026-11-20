@@ -52,6 +52,15 @@ const Block = ({ block }: { block: NoticeBlockData }) => {
       )
     case 'hint':
       return <p className={styles.hint}>{block.text}</p>
+    case 'link':
+      return (
+        <p className={styles.hint}>
+          {block.text}
+          <a className={styles.link} href={block.href} target="_blank" rel="noreferrer">
+            {block.label}
+          </a>
+        </p>
+      )
     case 'text':
       return <p className={styles.text}>{block.text}</p>
   }

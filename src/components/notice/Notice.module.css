@@ -141,6 +141,17 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+/* 小字里的外链（官方价目表）：字号跟随所在小字，颜色用品牌色，可点可选中 */
+.link {
+  color: var(--dsw-alias-brand-text);
+  text-decoration: none;
+  user-select: text;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 /* 作者联系方式：和报错一样用浅底色块，标签窄一点好对齐 */
 .contact {
   display: flex;

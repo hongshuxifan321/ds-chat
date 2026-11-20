@@ -5,7 +5,7 @@
  */
 
 /** 面板底部显示的「最后更新」日期 */
-export const NOTICE_UPDATED = '2026-11-19'
+export const NOTICE_UPDATED = '2026-11-20'
 
 export type NoticeBlock =
   /** 一段正文 */
@@ -18,6 +18,8 @@ export type NoticeBlock =
   | { kind: 'contact'; items: { label: string; value: string; href?: string }[] }
   /** 段末的补充提醒，浅色小字 */
   | { kind: 'hint'; text: string }
+  /** 浅色小字 + 紧跟一个可点外链（如官方价目表） */
+  | { kind: 'link'; text: string; label: string; href: string }
 
 export type NoticeSection = { title: string; blocks: NoticeBlock[] }
 
@@ -68,6 +70,21 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
       {
         kind: 'text',
         text: '这个网页不收钱、不代充，也碰不到你的账号。侧边栏的余额卡只干两件事：读一下余额、把你送到官方充值页。所有扣费都发生在 DeepSeek 官方账户里，按用量算，和我无关。',
+      },
+      {
+        kind: 'item',
+        title: '钱是怎么算的',
+        text: '官方按 token 计费，一个汉字大约 0.6 个 token，写一万字约三分钱——这是晚上和周末的价，工作日白天翻倍。发出去的字（提问、历史对话、网页正文、图片）算输入，读一万字不到一分钱；模型写回来的字（包括「深度思考」那段）算输出。旧对话每次都会重发，但重复的部分按缓存价算，只有原价的五十分之一，所以越聊越贵、涨得慢。',
+      },
+      {
+        kind: 'text',
+        text: '量级感：随口问一百次约一毛；一条三十轮的对话一两毛；几十块钱够用很久。',
+      },
+      {
+        kind: 'link',
+        text: '按 2026-11-20 官方牌价折算（deepseek-flash，元/百万 token：输入命中缓存 0.02、未命中 1、输出 4，高峰翻倍）。官方调价后这页可能滞后，实时价格见',
+        label: '官方价目表（api-docs.deepseek.com）',
+        href: 'https://api-docs.deepseek.com/zh-cn/quick_start/pricing',
       },
     ],
   },

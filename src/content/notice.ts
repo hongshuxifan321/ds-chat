@@ -51,7 +51,7 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
       },
       {
         kind: 'text',
-        text: '唯一会离开你设备的，是你主动发出去的东西：消息、附件、语音。它们由浏览器直接发给 DeepSeek 官方的接口（api.deepseek.com），不经过我，也不经过任何第三方。',
+        text: '唯一会离开你设备的，是你主动发出去的东西：消息、附件、语音，以及你在设置里选的地区（用来回答天气这类和地点有关的问题）。它们由浏览器直接发给 DeepSeek 官方的接口（api.deepseek.com），不经过我，也不经过任何第三方。',
       },
       {
         kind: 'text',

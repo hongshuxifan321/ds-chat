@@ -1,6 +1,6 @@
 {
   "name": "ds-chat",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "自带 API Key 的 DeepSeek 对话客户端（非官方），纯静态 PWA。",
   "license": "MIT",
   "private": true,

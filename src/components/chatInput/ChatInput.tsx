@@ -21,7 +21,6 @@ import {
   setDraftText,
   useDrafts,
 } from '../../services/chat/drafts.js'
-import type { DraftAttachment } from '../../services/chat/drafts.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import { IconButton } from '../base/IconButton.js'
 import { Tooltip } from '../base/Tooltip.js'
@@ -111,20 +110,30 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     },
     [sessionId]
   )
-  // 正在裁剪的附件：弹层里拿到的是快照，确认时按 id 回草稿里替换
-  const [cropping, setCropping] = useState<DraftAttachment | null>(null)
+  // 正在裁剪的附件：弹层里拿的是快照，确认时按 id 回草稿里替换。
+  // 弹层的图源在这里自建、在这里释放，不再依赖草稿上的预览字段。
+  const [cropping, setCropping] = useState<{ id: string; file: File; url: string } | null>(null)
   const cropFile = useCallback(
     (id: string) => {
       if (useChatStore.getState().importingHistory) {
         return
       }
       const target = getDraft(sessionId).attachments.find((item) => item.id === id)
-      if (target?.previewUrl) {
-        setCropping(target)
+      if (target) {
+        setCropping({ id, file: target.file, url: URL.createObjectURL(target.file) })
       }
     },
     [sessionId]
   )
+  // 换图或关掉弹层时释放上一张图的 object URL
+  useEffect(() => {
+    const url = cropping?.url
+    return () => {
+      if (url) {
+        URL.revokeObjectURL(url)
+      }
+    }
+  }, [cropping])
   const confirmCrop = useCallback(
     (cropped: File) => {
       if (cropping) {
@@ -336,10 +345,10 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         </div>
       </div>
       {explain ? <ContextCard usage={usage} onClose={() => setExplain(false)} /> : null}
-      {cropping?.previewUrl ? (
+      {cropping ? (
         <ImageCropDialog
           file={cropping.file}
-          previewUrl={cropping.previewUrl}
+          previewUrl={cropping.url}
           onCancel={() => setCropping(null)}
           onConfirm={confirmCrop}
         />

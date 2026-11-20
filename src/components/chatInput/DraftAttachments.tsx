@@ -6,6 +6,7 @@ import type { DraftAttachment } from '../../services/chat/drafts.js'
 import { IconCloseFill14, IconRefreshOutline16 } from '../base/icons.js'
 import { Tooltip } from '../base/Tooltip.js'
 import { FileCard } from '../files/FileCard.js'
+import { useFileView } from '../files/useFileView.js'
 import styles from './ChatInput.module.css'
 
 const UPLOADING: UploadTask = { status: 'uploading' }
@@ -53,6 +54,7 @@ const AttachmentItem = ({
   onCrop: () => void
 }) => {
   const t = useTranslate()
+  const { image, url, link } = useFileView(item.file, item.file.name)
   const task = useUploads((state) => state.tasks[item.id] ?? UPLOADING)
   const status = task.status
   const error = task.status === 'error' ? t(task.error.key, task.error.params) : undefined
@@ -62,14 +64,15 @@ const AttachmentItem = ({
   const retryLabel = t('uploadRetry', { message: error ?? t('uploadFileStatusFailed') })
   // 「上传失败」只显示重试图标，其余原因写在图片上：可重试时在图标下方，不可重试时贴底
   const showReason = failed && error !== undefined && error !== t('uploadFileStatusFailed')
-  return item.previewUrl ? (
+  const preview = url ? <img src={url} alt={item.file.name} /> : null
+  return image && url !== null ? (
     <div
       className={clsx(styles.attachment, failed && styles.attachmentFailed)}
       title={error ?? item.file.name}
     >
       {/* 点缩略图进裁剪；失败态下整块被重试/原因浮层盖住，所以那时不开放入口 */}
       {failed ? (
-        <img src={item.previewUrl} alt={item.file.name} />
+        preview
       ) : (
         <button
           type="button"
@@ -77,7 +80,7 @@ const AttachmentItem = ({
           aria-label={t('cropImage')}
           onClick={onCrop}
         >
-          <img src={item.previewUrl} alt={item.file.name} />
+          {preview}
         </button>
       )}
       {status === 'uploading' ? <div className={styles.uploading} /> : null}
@@ -108,6 +111,7 @@ const AttachmentItem = ({
       name={item.file.name}
       size={item.file.size}
       status={status}
+      link={link}
       error={error}
       onRetry={retry}
       onRemove={onRemove}

@@ -12,11 +12,17 @@ export { getFileExt }
 export const ACCEPTED_EXTS = ACCEPT_FILE_EXTS
 /** 选择文件对话框的过滤条件 */
 export const ACCEPT = ACCEPTED_EXTS.map((ext) => `.${ext}`).join(',')
-/** 单文件大小上限与 Files API 一致 */
-export const MAX_SIZE_MB = 64
+/** 单文件大小上限，与 Files API 的分档一致：图片 64 MiB、文档 100 MiB、纯文本等 32 MiB */
+export const MAX_IMAGE_SIZE_MB = 64
+export const MAX_DOCUMENT_SIZE_MB = 100
 /** 按 user_data 上传的文件（纯文本、代码、表格、电子书）原文件上限更小 */
 export const MAX_USER_DATA_SIZE_MB = 32
+/** 单条消息的附件总数（自设上限；官方对总数无要求，只分别限制文档与图片） */
 export const MAX_COUNT = 50
+/** 官方限制：每个请求最多引用 20 个文档，超过返回 400 */
+export const MAX_DOCUMENTS = 20
+/** 官方限制：每个请求最多 600 张图片 */
+export const MAX_IMAGES = 600
 /** 同时上传的文件数 */
 const MAX_CONCURRENT = 3
 
@@ -38,14 +44,27 @@ export const getUploadPurpose = (name: string, mimeType: string): FilePurpose | 
   return LAYOUT_RECOGNITION_EXTS.has(getFileExt(name)) ? 'rich_layout_recognition' : 'user_data'
 }
 
-/** 文件允许的最大体积（MB），按上传时的 purpose 区分 */
-const getMaxSizeMB = (file: File) =>
-  getUploadPurpose(file.name, resolveMimeType(file)) === 'user_data'
-    ? MAX_USER_DATA_SIZE_MB
-    : MAX_SIZE_MB
+/** 文件允许的最大体积（MB），按上传时的 purpose 分档，与官方 Files API 一致 */
+const getMaxSizeMB = (file: File) => {
+  switch (getUploadPurpose(file.name, resolveMimeType(file))) {
+    case 'rich_layout_recognition':
+      return MAX_DOCUMENT_SIZE_MB
+    case 'user_data':
+      return MAX_USER_DATA_SIZE_MB
+    default:
+      return MAX_IMAGE_SIZE_MB
+  }
+}
 
-/** 添加前校验：格式 → 大小 → 数量，任一不满足即整批不添加 */
-export const validateFiles = (files: File[], currentCount: number): TranslationMessage | null => {
+/** 走 document 块发送的附件（文档、纯文本、表格、电子书都算），用于套「每请求最多 20 个文档」 */
+const isDocumentFile = (file: File) =>
+  getUploadPurpose(file.name, resolveMimeType(file)) !== null
+
+/** 添加前校验：格式 → 大小 → 总数 → 文档数 / 图片数，任一不满足即整批不添加 */
+export const validateFiles = (
+  files: File[],
+  existing: File[] = []
+): TranslationMessage | null => {
   if (files.some((file) => !isAcceptedExt(file.name))) {
     return { key: 'uploadUnsupportedFormat' }
   }
@@ -53,8 +72,16 @@ export const validateFiles = (files: File[], currentCount: number): TranslationM
   if (oversized) {
     return { key: 'uploadMaxMBSize', params: { size: getMaxSizeMB(oversized) } }
   }
-  if (currentCount + files.length > MAX_COUNT) {
+  const all = [...existing, ...files]
+  if (all.length > MAX_COUNT) {
     return { key: 'uploadMaxFiles', params: { count: MAX_COUNT } }
+  }
+  const documents = all.filter(isDocumentFile).length
+  if (documents > MAX_DOCUMENTS) {
+    return { key: 'uploadMaxDocuments', params: { count: MAX_DOCUMENTS } }
+  }
+  if (all.length - documents > MAX_IMAGES) {
+    return { key: 'uploadMaxImages', params: { count: MAX_IMAGES } }
   }
   return null
 }
@@ -64,8 +91,15 @@ export const validateFiles = (files: File[], currentCount: number): TranslationM
  * 服务端原文多为英文且较长，不直接展示。
  */
 export const describeUploadError = (error: unknown): TranslationMessage => {
-  if (classifyApiError(error) === 'serverBusy') {
+  const condition = classifyApiError(error)
+  if (condition === 'serverBusy') {
     return { key: 'uploadServerBusy' }
+  }
+  if (condition === 'tooLarge') {
+    return { key: 'uploadTooLarge' }
+  }
+  if (condition === 'timeout') {
+    return { key: 'uploadTimeout' }
   }
   if (getUploadErrorInfo(error)?.code === 'parseFailed') {
     return { key: 'uploadParseFailed' }

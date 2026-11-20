@@ -254,8 +254,13 @@ export const zh = {
   chatInputStopButtonTooltip: '停止生成',
   uploadMaxMBSize: '单个文件大小超过限制（{size}MB），请调整后重试',
   uploadMaxFiles: '上传文件最多支持 {count} 个',
+  uploadMaxDocuments:
+    '单条消息最多 {count} 个文档（PDF、Word、PPT、文本、表格都算），请分几条发送',
+  uploadMaxImages: '单条消息最多 {count} 张图片',
   uploadFileStatusUploading: '上传中...',
   uploadServerBusy: '服务器繁忙',
+  uploadTooLarge: '文件超过服务端上限，请压缩或拆分后重试',
+  uploadTimeout: '上传超时：文件太大或网络太慢，换个网络或压缩后重试',
   uploadParseFailed: '解析失败',
   imageUnsupportedSkipped: '{count} 张图片服务端无法识别，已跳过，之后的提问不再携带这些图片',
   attachmentUnsupported: '服务端无法识别此格式，已跳过',
@@ -263,7 +268,8 @@ export const zh = {
   uploadStorageLimit: '已上传文件占用空间达到上限（{limit}GB），可 ',
   uploadDeleteFiles: '删除文件',
   dragFileToUpload: '文件拖动到此处即可上传',
-  dragFileDesc: '最多 {count} 个，每个 {size}MB',
+  dragFileDesc:
+    '最多 {count} 个；单个上限：图片 {image}MB、文档 {document}MB、文本与表格 {userData}MB',
   voiceInput: '语音输入',
   voiceInputTimer: '录音中 {seconds}s',
   voiceInputStop: '结束录音并转写',

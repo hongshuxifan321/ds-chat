@@ -273,8 +273,13 @@ export const en = {
   chatInputStopButtonTooltip: 'Stop',
   uploadMaxMBSize: 'File exceeds the size limit ({size} MB). Please adjust and try again.',
   uploadMaxFiles: 'You can upload up to {count} files',
+  uploadMaxDocuments:
+    'Up to {count} documents per message (PDF, Word, PowerPoint, text and spreadsheets all count). Please send them in several messages.',
+  uploadMaxImages: 'Up to {count} images per message',
   uploadFileStatusUploading: 'Uploading...',
   uploadServerBusy: 'Server busy',
+  uploadTooLarge: 'File exceeds the server limit. Please compress or split it and retry.',
+  uploadTimeout: 'Upload timed out: the file is too large or the network is too slow.',
   uploadParseFailed: 'Parsing failed',
   imageUnsupportedSkipped:
     '{count} image(s) in this conversation cannot be read by the server and were skipped; later messages no longer send them',
@@ -283,7 +288,8 @@ export const en = {
   uploadStorageLimit: 'Uploaded file storage limit reached ({limit} GB). ',
   uploadDeleteFiles: 'Delete files',
   dragFileToUpload: 'Drop files here to upload',
-  dragFileDesc: 'Up to {count} files, {size} MB each',
+  dragFileDesc:
+    'Up to {count} files; per-file limit: images {image} MB, documents {document} MB, text and spreadsheets {userData} MB',
   voiceInput: 'Voice input',
   voiceInputTimer: 'Recording {seconds}s',
   voiceInputStop: 'Stop recording and transcribe',

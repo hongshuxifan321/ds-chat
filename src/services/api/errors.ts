@@ -8,6 +8,7 @@ export type ApiErrorCondition =
   | 'unauthorized'
   | 'insufficientBalance'
   | 'tooLarge'
+  | 'timeout'
   | 'rateLimited'
   | 'serverBusy'
   | 'network'
@@ -23,6 +24,10 @@ export const classifyStatus = (status: number | undefined): ApiErrorCondition =>
   }
   if (status === 413) {
     return 'tooLarge'
+  }
+  // 408：Files API 的「上传太慢」，只有上传会遇到
+  if (status === 408) {
+    return 'timeout'
   }
   if (status === 429) {
     return 'rateLimited'

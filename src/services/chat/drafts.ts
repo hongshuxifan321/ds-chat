@@ -65,7 +65,8 @@ export const addDraftFiles = (
   if (files.length === 0) {
     return null
   }
-  const error = validateFiles(files, getDraft(sessionId).attachments.length)
+  const existing = getDraft(sessionId).attachments.map((attachment) => attachment.file)
+  const error = validateFiles(files, existing)
   if (error) {
     return error
   }

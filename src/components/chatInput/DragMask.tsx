@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslate } from '../../i18n/index.js'
-import { MAX_COUNT, MAX_SIZE_MB } from '../../services/attachments.js'
+import {
+  MAX_COUNT,
+  MAX_DOCUMENT_SIZE_MB,
+  MAX_IMAGE_SIZE_MB,
+  MAX_USER_DATA_SIZE_MB,
+} from '../../services/attachments.js'
 import styles from './DragMask.module.css'
 
 const hasFiles = (event: DragEvent) => event.dataTransfer?.types.includes('Files') ?? false
@@ -67,7 +72,12 @@ const DragMaskContent = () => {
         <UploadIcon />
         <div className={styles.title}>{t('dragFileToUpload')}</div>
         <div className={styles.desc}>
-          {t('dragFileDesc', { count: MAX_COUNT, size: MAX_SIZE_MB })}
+          {t('dragFileDesc', {
+          count: MAX_COUNT,
+          image: MAX_IMAGE_SIZE_MB,
+          document: MAX_DOCUMENT_SIZE_MB,
+          userData: MAX_USER_DATA_SIZE_MB,
+        })}
         </div>
       </div>
     </div>

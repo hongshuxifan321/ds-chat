@@ -193,6 +193,9 @@ export const en = {
   settingsTtsVoice: 'Read-aloud voice',
   settingsTtsVoiceStella: 'Stella (female)',
   settingsTtsVoiceTide: 'Tide (male)',
+  settingsThinkingCollapse: 'Collapse thinking automatically',
+  settingsThinkingCollapseDescription:
+    'When on, thinking content collapses once thinking ends',
   settingsLocation: 'Location',
   settingsLocationProvince: 'Select province/region',
   settingsLocationCity: 'Select city',

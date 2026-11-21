@@ -32,6 +32,7 @@ import { Tooltip } from '../base/Tooltip.js'
 import { Markdown } from '../markdown/Markdown.js'
 import { SiteThumbnails } from '../search/SiteLogo.js'
 import { toggleSearchPanel, useSearchPanel } from '../search/searchPanelState.js'
+import { useSettings } from '../../services/settings.js'
 import styles from './ReplyArea.module.css'
 import './thinking.markdown.css'
 
@@ -65,13 +66,15 @@ export const ReplyArea = memo(function ReplyArea({
   hasResponse: boolean
 }) {
   useTranslate()
+  const thinkingCollapse = useSettings((state) => state.thinkingCollapse)
   const [expandOverride, setExpandOverride] = useState<boolean | null>(null)
   const titleActive = streaming && !hasResponse
   /*
    * 思考期间展开，开始输出正文（思考结束）后自动收起，和官方一致；展开的思考文本会让
-   * 移动端的 DOM 显著变大。用户手动点过标题后就以手动状态为准，不再自动改变。
+   * 移动端的 DOM 显著变大。设置里可以关掉自动收起，关掉后一直展开。
+   * 用户手动点过标题后就以手动状态为准，不再自动改变。
    */
-  const open = expandOverride ?? titleActive
+  const open = expandOverride ?? (titleActive || !thinkingCollapse)
   useTicker(titleActive, 1000)
   if (view.steps.length === 0 && !(message.thinking && streaming)) {
     return null

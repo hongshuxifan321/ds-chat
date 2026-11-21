@@ -27,6 +27,7 @@ import {
   setLocale,
   setLocation,
   setThemePreference,
+  setThinkingCollapse,
   setTtsVoice,
   useSettings,
   type FontScale,
@@ -107,6 +108,7 @@ const SettingsContent = () => {
               <ThemeSetting />
               <LocaleSetting />
               <FontScaleSetting />
+              <ThinkingCollapseSetting />
               <TtsVoiceSetting />
               <LocationSetting />
             </>
@@ -348,6 +350,43 @@ const FontScaleSetting = () => {
         ))}
       </div>
     </div>
+  )
+}
+
+/** 开关：开启为官方蓝、关闭为中性灰，空格与回车都能切换 */
+const Switch = ({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean
+  label: string
+  onChange: (value: boolean) => void
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    className={clsx(styles.switch, checked && styles.switchOn)}
+    onClick={() => onChange(!checked)}
+  >
+    <span className={styles.switchKnob} />
+  </button>
+)
+
+/** 思考结束后是否自动收起思考内容；默认开启，与官方网页端一致 */
+const ThinkingCollapseSetting = () => {
+  const t = useTranslate()
+  const thinkingCollapse = useSettings((state) => state.thinkingCollapse)
+  const label = t('settingsThinkingCollapse')
+  return (
+    <SettingCell
+      label={label}
+      description={t('settingsThinkingCollapseDescription')}
+      status={null}
+      action={<Switch checked={thinkingCollapse} label={label} onChange={setThinkingCollapse} />}
+    />
   )
 }
 

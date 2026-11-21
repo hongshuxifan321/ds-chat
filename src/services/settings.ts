@@ -10,7 +10,7 @@ export type ThemePreference = 'light' | 'dark' | 'system'
 /** 正文字号档位；默认档与官方网页端一致 */
 export type FontScale = 'default' | 'large1' | 'large2'
 
-/** 本机设置，存 localStorage：API Key、语言、主题、字号、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态 */
+/** 本机设置，存 localStorage：API Key、语言、主题、字号、位置、朗读音色、深度思考与智能搜索开关、思考内容自动折叠、侧边栏收起状态 */
 type Settings = {
   apiKey: string | null
   locale: Locale
@@ -20,6 +20,7 @@ type Settings = {
   ttsVoice: TtsVoice
   thinking: boolean
   search: boolean
+  thinkingCollapse: boolean
   siderCollapsed: boolean
 }
 
@@ -32,6 +33,7 @@ const KEYS = {
   ttsVoice: 'chat-demo:tts-voice',
   thinking: 'chat-demo:thinking',
   search: 'chat-demo:search',
+  thinkingCollapse: 'chat-demo:thinking-collapse',
   siderCollapsed: 'chat-demo:sider-collapsed',
 } as const
 
@@ -104,6 +106,9 @@ const initialFontScale = (): FontScale => {
 /** 未保存过时使用服务端默认音色 stella（海星） */
 const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')
 
+/** 未保存过时视为开启：思考结束后自动收起，与之前的固定行为一致 */
+const initialThinkingCollapse = (): boolean => read(KEYS.thinkingCollapse) !== 'false'
+
 export const useSettings = create<Settings>(() => ({
   apiKey: read(KEYS.apiKey),
   locale: initialLocale(),
@@ -113,6 +118,7 @@ export const useSettings = create<Settings>(() => ({
   ttsVoice: initialTtsVoice(),
   thinking: read(KEYS.thinking) === 'true',
   search: read(KEYS.search) === 'true',
+  thinkingCollapse: initialThinkingCollapse(),
   siderCollapsed: read(KEYS.siderCollapsed) === 'true',
 }))
 
@@ -157,6 +163,11 @@ export const setThinking = (thinking: boolean) => {
 export const setSearch = (search: boolean) => {
   write(KEYS.search, String(search))
   useSettings.setState({ search })
+}
+
+export const setThinkingCollapse = (thinkingCollapse: boolean) => {
+  write(KEYS.thinkingCollapse, String(thinkingCollapse))
+  useSettings.setState({ thinkingCollapse })
 }
 
 export const setSiderCollapsed = (siderCollapsed: boolean) => {

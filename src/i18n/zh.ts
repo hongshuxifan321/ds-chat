@@ -176,6 +176,8 @@ export const zh = {
   settingsTtsVoice: '朗读音色',
   settingsTtsVoiceStella: '海星（女声）',
   settingsTtsVoiceTide: '暗潮（男声）',
+  settingsThinkingCollapse: '思考内容自动折叠',
+  settingsThinkingCollapseDescription: '开启后，思考结束后将自动折叠思考内容',
   settingsLocation: '位置信息',
   settingsLocationProvince: '请选择省份/地区',
   settingsLocationCity: '请选择市',

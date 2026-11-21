@@ -297,6 +297,47 @@
   }
 }
 
+/* 开关：开启为官方蓝、关闭为中性灰，滑块白圆左右移动 */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--dsw-alias-interactive-bg-hover-accent);
+  cursor: pointer;
+  outline: none;
+  transition: background-color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--dsw-alias-button-primary-fill);
+  }
+}
+
+.switchOn {
+  background-color: var(--dsw-alias-brand-primary);
+}
+
+/* 滑块：左 2px 起，行程 18px 正好贴到右边 2px */
+.switchKnob {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.18),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transition: transform var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+.switchOn .switchKnob {
+  transform: translateX(18px);
+}
+
 /* 三个档位标签分别居中于滑块的三个落点：左右各 26px（内缩 13 + 半个滑块 13） */
 .fontScaleTicks {
   position: relative;

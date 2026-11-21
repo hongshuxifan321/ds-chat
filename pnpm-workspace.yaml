@@ -1,0 +1,5 @@
+# pnpm 10+ 把 overrides 等设置从 package.json 的 "pnpm" 字段搬到这里（pnpm 12 起不再读 package.json）。
+# micromark-extension-llm-math 钉的是 katex ^0.16.0，这里统一到应用自己用的 0.18.2，
+# 避免依赖树里并存一份落在 GHSA 漏洞区间（< 0.18.2）的 katex 0.16.x。
+overrides:
+  katex: 0.18.2

@@ -24,7 +24,11 @@ DS-Chat/
 
 ## 常用命令
 
-- 装依赖：`npm install`（CI 走 `pnpm install --frozen-lockfile`，两者都跑得通）
+- 装依赖：`pnpm install`（与 CI 一致，`pnpm-lock.yaml` 即权威锁文件）
+  - **别用 `npm install`**：它会绕开 `pnpm-workspace.yaml` 里的 `overrides`（npm 只读 `package.json` 的 `overrides`），
+    并重新生成一个 `package-lock.json`（已在 `.gitignore` 里，不会误提交，但会把本地依赖装回旧版本）
+  - 2026-11-21 删掉了工作区里遗留的 `package-lock.json`（从未提交过，是某次 `npm install` 的残留）
+  - 卡 `ERR_PNPM_STORE_DIR_OPEN_OPERATION_LOCK` 是 DSH 沙箱不能写用户 AppData 下的 pnpm store，属环境问题，不是依赖坏了
 - 构建：`npx rspack build -c rspack.config.ts`（Windows 下用 `node_modules\.bin\rspack.cmd`）
   （`npm run build` 里的 `rm -rf` 在 Windows cmd 不可用，别用）
 - 类型检查：`npx tsc -p tsconfig.json`
@@ -69,7 +73,8 @@ DS-Chat/
 - 一次改动一次提交，message 说明改了什么
 - 不提交 node_modules、dist、preview、package-lock.json
 - 推送前必须确认；推送用 `git push mine pwa:main`（Pages 从 main 构建，pwa 是开发分支）
-- 线上验证以部署后的站点为准，不看 bundle hash（CI 的 pnpm 依赖解析与本地 npm 安装不同，产物 hash 必然不同）
+- 线上验证以部署后的站点为准，不看 bundle hash（本地 Node 26 / CI Node 24，产物 hash 可能不同）
+- 依赖有 `overrides` 时写在 `pnpm-workspace.yaml`（pnpm 12 起不再读 `package.json` 的 `pnpm` 字段）
 
 ## 当前状态（2026-11-20）
 

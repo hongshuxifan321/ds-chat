@@ -323,24 +323,28 @@ const FontScaleSetting = () => {
   const index = Math.max(0, FONT_SCALES.indexOf(fontScale))
   return (
     <div className={clsx(styles.cell, styles.fontScaleCell)}>
-      <div className={styles.fontScaleHead}>
-        <div className={styles.label}>{t('settingsFontScale')}</div>
-        <div className={styles.fontScaleValue}>{labels[index]}</div>
+      <div className={styles.label}>{t('settingsFontScale')}</div>
+      <div className={styles.fontScaleSlider}>
+        <div className={styles.fontScaleTrack}>
+          <div className={styles.fontScaleFill} />
+        </div>
+        <input
+          type="range"
+          className={styles.fontScaleRange}
+          min={0}
+          max={FONT_SCALES.length - 1}
+          step={1}
+          value={index}
+          aria-label={t('settingsFontScale')}
+          aria-valuetext={labels[index]}
+          onChange={(event) => setFontScale(FONT_SCALES[Number(event.target.value)])}
+        />
       </div>
-      <input
-        type="range"
-        className={styles.fontScaleRange}
-        min={0}
-        max={FONT_SCALES.length - 1}
-        step={1}
-        value={index}
-        aria-label={t('settingsFontScale')}
-        aria-valuetext={labels[index]}
-        onChange={(event) => setFontScale(FONT_SCALES[Number(event.target.value)])}
-      />
       <div className={styles.fontScaleTicks} aria-hidden="true">
         {labels.map((label) => (
-          <span key={label}>{label}</span>
+          <span key={label} className={styles.fontScaleTick}>
+            {label}
+          </span>
         ))}
       </div>
     </div>

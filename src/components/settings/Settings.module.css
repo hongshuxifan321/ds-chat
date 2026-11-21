@@ -211,54 +211,67 @@
   gap: 6px;
 }
 
-.fontScaleHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+/* 调节条容器：轨道与填充分层画，输入层透明叠在上面只负责交互与滑块 */
+.fontScaleSlider {
+  position: relative;
+  height: 22px;
 }
 
-.fontScaleValue {
-  font-size: 13px;
-  line-height: 22px;
-  color: var(--dsw-alias-label-secondary);
+/* 轨道：左右各内缩半个滑块宽，滑块在两端正好压住胶囊两端 */
+.fontScaleTrack {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 13px;
+  right: 13px;
+  border-radius: 999px;
+  background: var(--ds-slider-track);
+  overflow: hidden;
+}
+
+/* 已选段：宽度随档位变，0% / 50% / 100% 正好对应三个滑块位置 */
+.fontScaleFill {
+  width: var(--ds-font-scale-fill);
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dsw-alias-brand-primary);
 }
 
 .fontScaleRange {
+  position: absolute;
+  top: 0;
+  left: 0;
   -webkit-appearance: none;
   appearance: none;
   box-sizing: border-box;
   width: 100%;
-  height: 32px;
+  height: 22px;
   margin: 0;
-  /* 左右各留半个滑块的宽度：Chrome 把滑块圆心放在轨道端点，不留会探出胶囊 */
+  /* 左右各留半个滑块宽：Chrome 把滑块整体放在内容框内，行程与轨道对齐 */
   padding: 0 13px;
-  border-radius: 999px;
-  /* 已选段用渐变铺满填充宽度（background-size 随档位变），其余露出轨道底色 */
-  background:
-    linear-gradient(90deg, var(--ds-slider-fill-from), var(--ds-slider-fill-to)) 0 0 /
-      var(--ds-font-scale-fill) 100% no-repeat,
-    var(--ds-slider-track);
+  border: none;
+  background: transparent;
   cursor: pointer;
 
   &:focus-visible {
     outline: 2px solid var(--dsw-alias-brand-primary);
     outline-offset: 2px;
+    border-radius: 11px;
   }
 
   &::-webkit-slider-runnable-track {
-    height: 32px;
-    border-radius: 999px;
+    height: 22px;
     background: transparent;
   }
 
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
+    /* 比轨道高 4px，上下各露 2px，避免轨道在滑块两侧露出细边 */
     width: 26px;
     height: 26px;
-    /* (轨道 32 - 滑块 26) / 2，垂直居中 */
-    margin-top: 3px;
+    /* (轨道 22 - 滑块 26) / 2，垂直居中 */
+    margin-top: -2px;
     border: none;
     border-radius: 50%;
     background: #fff;
@@ -268,8 +281,7 @@
   }
 
   &::-moz-range-track {
-    height: 32px;
-    border-radius: 999px;
+    height: 22px;
     background: transparent;
   }
 
@@ -285,12 +297,34 @@
   }
 }
 
+/* 三个档位标签分别居中于滑块的三个落点：左右各 26px（内缩 13 + 半个滑块 13） */
 .fontScaleTicks {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 18px;
+  /* 与轨道拉开距离：滑块比轨道高出 2px，太近会显得贴着 */
+  margin-top: 8px;
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-label-tertiary);
+}
+
+.fontScaleTick {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  transform: translateX(-50%);
+
+  &:nth-child(1) {
+    left: 26px;
+  }
+
+  &:nth-child(2) {
+    left: 50%;
+  }
+
+  &:nth-child(3) {
+    left: calc(100% - 26px);
+  }
 }
 
 .apiKey {
@@ -607,3 +641,4 @@
 .helpSteps li + li {
   margin-top: 8px;
 }
+

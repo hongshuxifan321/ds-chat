@@ -258,7 +258,7 @@ body {
   --ds-session-title-line: 18px;
 
   /* 字号调节条：已选段填充比例（0 = 全灰），配色见文件末尾 */
-  --ds-font-scale-fill: 0px;
+  --ds-font-scale-fill: 0%;
   --ds-slider-track: rgba(0, 0, 0, 0.08);
   --ds-slider-fill-from: #679efe;
   --ds-slider-fill-to: var(--dsw-alias-brand-primary);
@@ -294,7 +294,7 @@ body[data-font-scale='large1'] {
   --ds-session-title-line: 20px;
 
   /* 填充到 50% 处滑块圆心（滑块 26px，左右各内缩 13px） */
-  --ds-font-scale-fill: calc((100% - 26px) / 2 + 13px);
+  --ds-font-scale-fill: 50%;
 }
 
 body[data-font-scale='large2'] {
@@ -319,3 +319,4 @@ body[data-font-scale='large2'] {
   /* 拉到底：整条填满 */
   --ds-font-scale-fill: 100%;
 }
+

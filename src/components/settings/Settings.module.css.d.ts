@@ -20,9 +20,11 @@ declare const styles: {
   readonly "themeOption": string;
   readonly "themeOptionSelected": string;
   readonly "fontScaleCell": string;
-  readonly "fontScaleHead": string;
-  readonly "fontScaleValue": string;
+  readonly "fontScaleTick": string;
   readonly "fontScaleRange": string;
+  readonly "fontScaleSlider": string;
+  readonly "fontScaleTrack": string;
+  readonly "fontScaleFill": string;
   readonly "fontScaleTicks": string;
   readonly "description": string;
   readonly "error": string;

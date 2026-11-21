@@ -204,7 +204,7 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
-/* 正文字号调节条：三档，最左为默认（与官方网页端一致） */
+/* 正文字号调节条：三档胶囊，已选段填充官方蓝，最左为默认（与官方网页端一致） */
 .fontScaleCell {
   flex-direction: column;
   align-items: stretch;
@@ -229,47 +229,59 @@
   appearance: none;
   box-sizing: border-box;
   width: 100%;
-  height: 20px;
+  height: 32px;
   margin: 0;
-  padding: 0;
-  background: transparent;
+  /* 左右各留半个滑块的宽度：Chrome 把滑块圆心放在轨道端点，不留会探出胶囊 */
+  padding: 0 13px;
+  border-radius: 999px;
+  /* 已选段用渐变铺满填充宽度（background-size 随档位变），其余露出轨道底色 */
+  background:
+    linear-gradient(90deg, var(--ds-slider-fill-from), var(--ds-slider-fill-to)) 0 0 /
+      var(--ds-font-scale-fill) 100% no-repeat,
+    var(--ds-slider-track);
   cursor: pointer;
 
   &:focus-visible {
     outline: 2px solid var(--dsw-alias-brand-primary);
     outline-offset: 2px;
-    border-radius: 4px;
   }
 
   &::-webkit-slider-runnable-track {
-    height: 4px;
-    border-radius: 2px;
-    background: var(--dsw-alias-border-l2);
+    height: 32px;
+    border-radius: 999px;
+    background: transparent;
   }
 
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
-    height: 16px;
-    margin-top: -6px;
+    width: 26px;
+    height: 26px;
+    /* (轨道 32 - 滑块 26) / 2，垂直居中 */
+    margin-top: 3px;
     border: none;
     border-radius: 50%;
-    background: var(--dsw-alias-brand-primary);
+    background: #fff;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.18),
+      0 0 0 0.5px rgba(0, 0, 0, 0.06);
   }
 
   &::-moz-range-track {
-    height: 4px;
-    border-radius: 2px;
-    background: var(--dsw-alias-border-l2);
+    height: 32px;
+    border-radius: 999px;
+    background: transparent;
   }
 
   &::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 26px;
+    height: 26px;
     border: none;
     border-radius: 50%;
-    background: var(--dsw-alias-brand-primary);
+    background: #fff;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.18),
+      0 0 0 0.5px rgba(0, 0, 0, 0.06);
   }
 }
 

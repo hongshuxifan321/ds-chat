@@ -5,7 +5,7 @@
  */
 
 /** 面板底部显示的「最后更新」日期 */
-export const NOTICE_UPDATED = '2026-11-20'
+export const NOTICE_UPDATED = '2026-11-21'
 
 export type NoticeBlock =
   /** 一段正文 */
@@ -91,6 +91,11 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
   {
     title: '现在有的功能',
     blocks: [
+      {
+        kind: 'item',
+        title: '字号调节',
+        text: '设置里「语言」下面多了一条调节条，能把对话正文和侧边栏的对话标题调大，分默认、加大 1、加大 2 三档，最左边就是原来的大小。按钮、输入框这些不跟着变，所以调大了也不会把版面挤乱；手机上一样能用，下次打开这个网页也还记得你选的档位。',
+      },
       {
         kind: 'item',
         title: '上下文进度条',

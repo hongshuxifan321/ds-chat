@@ -320,3 +320,21 @@ body[data-font-scale='large2'] {
   --ds-font-scale-fill: 100%;
 }
 
+/* 手机端侧栏标题本身比桌面大一档（16 起），三档在此基础上一并抬 */
+@media not all and (min-width: 768px) {
+  body {
+    --ds-session-title-size: 16px;
+    --ds-session-title-line: 22px;
+  }
+
+  body[data-font-scale='large1'] {
+    --ds-session-title-size: 18px;
+    --ds-session-title-line: 24px;
+  }
+
+  body[data-font-scale='large2'] {
+    --ds-session-title-size: 20px;
+    --ds-session-title-line: 26px;
+  }
+}
+

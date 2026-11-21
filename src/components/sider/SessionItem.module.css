@@ -67,14 +67,11 @@
 
 @media not all and (min-width: 768px) {
   .item {
-    height: 44px;
+    /* 高度随字号档位走：标题行高最大 26px，内容区要放得下 */
+    height: auto;
+    min-height: 44px;
     padding: 11px 6px 11px 12px;
     border-radius: 16px;
-    font-size: 16px;
-  }
-
-  .title {
-    line-height: 22px;
   }
 
   .renameInput {

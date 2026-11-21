@@ -41,6 +41,10 @@ export const zh = {
   sessionSaveFailed:
     '对话或附件尚未保存到本机，关闭页面可能丢失。请重试，或先导出备份。',
   sessionDeleteFailed: '删除对话失败，请重试',
+  crashTitle: '界面出错了',
+  crashHint: '对话可能存在本机里，刷新一下通常能恢复。若一直打不开，先导出备份再处理。',
+  crashReload: '刷新页面',
+  crashBackup: '导出备份',
   settings: '设置',
   appName: 'DS Chat',
   deleteSessionModalContentTitle: '永久删除对话',

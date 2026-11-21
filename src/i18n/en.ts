@@ -52,6 +52,11 @@ export const en = {
   sessionSaveFailed:
     'Chats or attachments have not been saved locally. Retry, or back up first.',
   sessionDeleteFailed: 'Unable to delete this chat. Please try again.',
+  crashTitle: 'Something broke',
+  crashHint:
+    'Your chats are probably still stored on this device — reloading usually fixes it. If it keeps failing, export a backup first.',
+  crashReload: 'Reload',
+  crashBackup: 'Export backup',
   settings: 'Settings',
   appName: 'DS Chat',
   deleteSessionModalContentTitle: 'Delete chat?',

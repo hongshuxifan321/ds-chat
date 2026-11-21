@@ -20,6 +20,7 @@ import {
   cancelUpload,
   describeUploadError,
   notifyUploadNotice,
+  runWithoutUploadProgress,
   uploadAttachment,
   useUploads,
 } from '../attachments.js'
@@ -35,6 +36,7 @@ import {
   prepareDraftMessage,
 } from './drafts.js'
 import { createLatestReminder } from './latestReminder.js'
+import { readSessionId, writeSessionId } from './sessionUrl.js'
 import {
   applyEvent,
   canContinueReply,
@@ -321,6 +323,22 @@ const settleInterrupted = (session: Session): Session => {
   }
 }
 
+/**
+ * 启动时按地址栏里的会话 id 恢复上次的对话；刷新、标签页被系统回收后重开都靠它。
+ * id 已经不在列表里（被删除、历史被替换）就清掉，避免留下打不开的死链。
+ */
+const restoreSessionFromUrl = () => {
+  const id = readSessionId()
+  if (id === null) {
+    return
+  }
+  if (get().sessions.some((session) => session.id === id)) {
+    selectSession(id)
+  } else {
+    writeSessionId(null)
+  }
+}
+
 export const initChat = (): Promise<void> => {
   if (get().ready) {
     return Promise.resolve()
@@ -337,6 +355,7 @@ export const initChat = (): Promise<void> => {
       const summaries = await db.loadSessionSummaries()
       if (epoch === historyEpoch) {
         set({ ready: true, sessions: sortSessions(summaries) })
+        restoreSessionFromUrl()
       }
     } catch (error) {
       if (epoch === historyEpoch) {
@@ -469,6 +488,7 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
       sessionSaveErrors: {},
       activeId: null,
     })
+    writeSessionId(null)
     return summaries.length
   } finally {
     set({ importingHistory: false })
@@ -486,6 +506,7 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
 export const newChat = () => {
   if (!get().importingHistory) {
     set({ activeId: null })
+    writeSessionId(null)
     trimSessionCache()
   }
 }
@@ -494,6 +515,7 @@ export const selectSession = (id: string) => {
   if (!get().importingHistory && get().sessions.some((session) => session.id === id)) {
     touchSession(id)
     set({ activeId: id })
+    writeSessionId(id)
     void ensureSessionLoaded(id)
     trimSessionCache()
   }
@@ -571,6 +593,7 @@ const removeSessionData = async (id: string): Promise<boolean> => {
     unsavedSessions.delete(id)
     pendingFiles.delete(id)
     clearDraft(id)
+    const wasActive = get().activeId === id
     set((state) => ({
       sessions: state.sessions.filter((session) => session.id !== id),
       sessionCache: Object.fromEntries(
@@ -584,6 +607,9 @@ const removeSessionData = async (id: string): Promise<boolean> => {
       ),
       activeId: state.activeId === id ? null : state.activeId,
     }))
+    if (wasActive) {
+      writeSessionId(null)
+    }
     return true
   } catch (error) {
     db.reportStorageError('delete session')(error)
@@ -640,6 +666,7 @@ export const sendMessage = (targetSessionId: string | null) => {
       sessionCache: { ...state.sessionCache, [session.id]: session },
       activeId: session.id,
     }))
+    writeSessionId(session.id)
   }
   const current = getSession(sessionId)
   if (!current) {
@@ -915,17 +942,20 @@ const prepareFiles = async (sessionId: string, request: Request, signal: AbortSi
   }
   const historyServerIds = new Map<string, string>()
   try {
-    for (const file of pending.values()) {
-      signal.throwIfAborted()
-      try {
-        const serverId = await Promise.race([ensureServerId(apiKey, file), aborted])
-        if (serverId) {
-          historyServerIds.set(file.id, serverId)
-        }
-      } catch {
+    // 补传期间不发布逐张进度：长会话列表会跟着重渲染，150 轮 / 30 图实测占掉 30 秒里的 28.8 秒
+    await runWithoutUploadProgress(async () => {
+      for (const file of pending.values()) {
         signal.throwIfAborted()
+        try {
+          const serverId = await Promise.race([ensureServerId(apiKey, file), aborted])
+          if (serverId) {
+            historyServerIds.set(file.id, serverId)
+          }
+        } catch {
+          signal.throwIfAborted()
+        }
       }
-    }
+    })
   } finally {
     // 由 streamReply 的发送前保存或停止收尾一次写入，保留已经补传成功的部分。
     updateServerIds(sessionId, historyServerIds)

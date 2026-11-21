@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App.js'
+import { ErrorBoundary } from './app/ErrorBoundary.js'
 import { setupTheme } from './app/theme.js'
 import { ensureKatex } from './services/markdown/katex.js'
 import './app/theme.css'
@@ -8,7 +9,11 @@ import './app/global.css'
 ensureKatex()
 setupTheme()
 
-createRoot(document.getElementById('root') as HTMLElement).render(<App />)
+createRoot(document.getElementById('root') as HTMLElement).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+)
 
 /** 生产构建才注册 service worker：开发服务器上注册会缓存旧资源，干扰调试。 */
 const canUseSW =

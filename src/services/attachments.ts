@@ -197,12 +197,57 @@ type UploadState = { tasks: Record<string, UploadTask> }
 
 export const useUploads = create<UploadState>(() => ({ tasks: {} }))
 
-const setTask = (id: string, task: UploadTask | null) =>
+/** 批量补传期间的挂起状态：key 为附件本地 id，null 表示该任务已结束（中止） */
+let updatesSuspended = false
+const suspendedTasks = new Map<string, UploadTask | null>()
+
+const setTask = (id: string, task: UploadTask | null) => {
+  if (updatesSuspended) {
+    suspendedTasks.set(id, task)
+    return
+  }
+  publishTask(id, task)
+}
+
+const publishTask = (id: string, task: UploadTask | null) =>
   useUploads.setState((state) => ({
     tasks: task
       ? { ...state.tasks, [id]: task }
       : Object.fromEntries(Object.entries(state.tasks).filter(([key]) => key !== id)),
   }))
+
+/**
+ * 补传历史附件期间先攒着任务状态，结束时一次性发布。
+ * 每张图都发布进度会让长会话列表跟着重渲染＋重排：150 轮 / 30 图的实测里，
+ * 30 秒有 28.8 秒耗在渲染而非 JS 与网络上（单条 files 记录读取只要 0.1 ms）。
+ */
+export const runWithoutUploadProgress = async <T>(work: () => Promise<T>): Promise<T> => {
+  updatesSuspended = true
+  try {
+    return await work()
+  } finally {
+    updatesSuspended = false
+    if (suspendedTasks.size > 0) {
+      const updates = new Map(suspendedTasks)
+      suspendedTasks.clear()
+      const cleared = new Set<string>()
+      const added: Record<string, UploadTask> = {}
+      for (const [id, task] of updates) {
+        if (task) {
+          added[id] = task
+        } else {
+          cleared.add(id)
+        }
+      }
+      useUploads.setState((state) => ({
+        tasks: {
+          ...Object.fromEntries(Object.entries(state.tasks).filter(([id]) => !cleared.has(id))),
+          ...added,
+        },
+      }))
+    }
+  }
+}
 
 const pending = new Map<string, { promise: Promise<string>; controller: AbortController }>()
 

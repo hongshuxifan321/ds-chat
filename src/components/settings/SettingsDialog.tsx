@@ -23,11 +23,13 @@ import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
 import {
   isChineseBrowser,
+  setFontScale,
   setLocale,
   setLocation,
   setThemePreference,
   setTtsVoice,
   useSettings,
+  type FontScale,
   type ThemePreference,
 } from '../../services/settings.js'
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
@@ -104,6 +106,7 @@ const SettingsContent = () => {
             <>
               <ThemeSetting />
               <LocaleSetting />
+              <FontScaleSetting />
               <TtsVoiceSetting />
               <LocationSetting />
             </>
@@ -302,6 +305,45 @@ const LocaleSetting = () => {
         />
       }
     />
+  )
+}
+
+/** 正文字号档位，顺序即调节条从左到右 */
+const FONT_SCALES: FontScale[] = ['default', 'large1', 'large2']
+
+/** 正文字号：三档调节条，默认档（最左）与官方网页端一致 */
+const FontScaleSetting = () => {
+  const t = useTranslate()
+  const fontScale = useSettings((state) => state.fontScale)
+  const labels = [
+    t('settingsFontScaleDefault'),
+    t('settingsFontScaleLarge1'),
+    t('settingsFontScaleLarge2'),
+  ]
+  const index = Math.max(0, FONT_SCALES.indexOf(fontScale))
+  return (
+    <div className={clsx(styles.cell, styles.fontScaleCell)}>
+      <div className={styles.fontScaleHead}>
+        <div className={styles.label}>{t('settingsFontScale')}</div>
+        <div className={styles.fontScaleValue}>{labels[index]}</div>
+      </div>
+      <input
+        type="range"
+        className={styles.fontScaleRange}
+        min={0}
+        max={FONT_SCALES.length - 1}
+        step={1}
+        value={index}
+        aria-label={t('settingsFontScale')}
+        aria-valuetext={labels[index]}
+        onChange={(event) => setFontScale(FONT_SCALES[Number(event.target.value)])}
+      />
+      <div className={styles.fontScaleTicks} aria-hidden="true">
+        {labels.map((label) => (
+          <span key={label}>{label}</span>
+        ))}
+      </div>
+    </div>
   )
 }
 

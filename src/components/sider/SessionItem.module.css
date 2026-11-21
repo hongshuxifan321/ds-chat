@@ -6,7 +6,7 @@
   height: 40px;
   padding: 9px 6px 9px 10px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: var(--ds-session-title-size);
   line-height: 22px;
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
@@ -36,7 +36,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  line-height: 18px;
+  line-height: var(--ds-session-title-line);
 }
 
 .action {

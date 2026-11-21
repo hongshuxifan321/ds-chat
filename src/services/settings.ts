@@ -7,11 +7,15 @@ export type Locale = 'zh-CN' | 'en-US'
 /** 主题偏好；默认跟随系统 */
 export type ThemePreference = 'light' | 'dark' | 'system'
 
-/** 本机设置，存 localStorage：API Key、语言、主题、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态 */
+/** 正文字号档位；默认档与官方网页端一致 */
+export type FontScale = 'default' | 'large1' | 'large2'
+
+/** 本机设置，存 localStorage：API Key、语言、主题、字号、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态 */
 type Settings = {
   apiKey: string | null
   locale: Locale
   themePreference: ThemePreference
+  fontScale: FontScale
   location: UserLocation | null
   ttsVoice: TtsVoice
   thinking: boolean
@@ -24,6 +28,7 @@ const KEYS = {
   locale: 'chat-demo:locale',
   location: 'chat-demo:location',
   themePreference: 'chat-demo:theme-preference',
+  fontScale: 'chat-demo:font-scale',
   ttsVoice: 'chat-demo:tts-voice',
   thinking: 'chat-demo:thinking',
   search: 'chat-demo:search',
@@ -90,6 +95,12 @@ const initialThemePreference = (): ThemePreference => {
   return saved === 'light' || saved === 'dark' ? saved : 'system'
 }
 
+/** 未保存过时使用默认字号（与官方网页端一致） */
+const initialFontScale = (): FontScale => {
+  const saved = read(KEYS.fontScale)
+  return saved === 'large1' || saved === 'large2' ? saved : 'default'
+}
+
 /** 未保存过时使用服务端默认音色 stella（海星） */
 const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')
 
@@ -98,6 +109,7 @@ export const useSettings = create<Settings>(() => ({
   locale: initialLocale(),
   location: initialLocation(),
   themePreference: initialThemePreference(),
+  fontScale: initialFontScale(),
   ttsVoice: initialTtsVoice(),
   thinking: read(KEYS.thinking) === 'true',
   search: read(KEYS.search) === 'true',
@@ -118,6 +130,11 @@ export const setLocation = (value: UserLocation | null) => {
 export const setThemePreference = (themePreference: ThemePreference) => {
   write(KEYS.themePreference, themePreference)
   useSettings.setState({ themePreference })
+}
+
+export const setFontScale = (fontScale: FontScale) => {
+  write(KEYS.fontScale, fontScale)
+  useSettings.setState({ fontScale })
 }
 
 export const setTtsVoice = (ttsVoice: TtsVoice) => {

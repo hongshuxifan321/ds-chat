@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App.js'
 import { ErrorBoundary } from './app/ErrorBoundary.js'
+import { setupFontScale } from './app/fontScale.js'
 import { setupTheme } from './app/theme.js'
 import { ensureKatex } from './services/markdown/katex.js'
 import './app/theme.css'
@@ -8,6 +9,7 @@ import './app/global.css'
 
 ensureKatex()
 setupTheme()
+setupFontScale()
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <ErrorBoundary>

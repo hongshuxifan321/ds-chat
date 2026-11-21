@@ -250,4 +250,54 @@ body {
   --dsw-font-s-strong-14: 500 14px/22px var(--dsw-font-family);
 
   --dsw-font-xs-13: 13px/20px var(--dsw-font-family);
+
+  /* 正文字号默认档（与官方网页端一致）；加大档见下方 body[data-font-scale] */
+  --ds-message-text-size: 16px;
+  --ds-message-text-line: 24px;
+  --ds-session-title-size: 14px;
+  --ds-session-title-line: 18px;
+}
+
+/*
+ * 正文字号档位：默认 16px，两档分别 ×1.125 / ×1.25。
+ * 只作用于阅读内容（消息正文、标题、表格、代码、侧栏对话标题），界面骨架一律不动。
+ */
+body[data-font-scale='large1'] {
+  --dsw-font-markdown-h1: 700 27px/38px var(--dsw-font-family);
+  --dsw-font-markdown-h2: 700 25px/36px var(--dsw-font-family);
+  --dsw-font-markdown-h3: 700 22px/34px var(--dsw-font-family);
+  --dsw-font-markdown-h4: 600 18px/31px var(--dsw-font-family);
+  --dsw-font-markdown-base: 18px/31px var(--dsw-font-family);
+  --dsw-font-markdown-base-strong: 600 18px/31px var(--dsw-font-family);
+  --dsw-font-markdown-table: 17px/28px var(--dsw-font-family);
+  --dsw-font-markdown-table-head: 500 17px/28px var(--dsw-font-family);
+  --dsw-font-markdown-small: 16px/27px var(--dsw-font-family);
+  --dsw-font-markdown-small-strong: 600 16px/27px var(--dsw-font-family);
+  --dsw-font-markdown-code: 16px/25px var(--ds-font-family-code);
+  --dsw-font-markdown-code-block: 15px/25px var(--ds-font-family-code);
+
+  --ds-message-text-size: 18px;
+  --ds-message-text-line: 27px;
+  --ds-session-title-size: 16px;
+  --ds-session-title-line: 20px;
+}
+
+body[data-font-scale='large2'] {
+  --dsw-font-markdown-h1: 700 30px/42px var(--dsw-font-family);
+  --dsw-font-markdown-h2: 700 28px/40px var(--dsw-font-family);
+  --dsw-font-markdown-h3: 700 25px/38px var(--dsw-font-family);
+  --dsw-font-markdown-h4: 600 20px/35px var(--dsw-font-family);
+  --dsw-font-markdown-base: 20px/35px var(--dsw-font-family);
+  --dsw-font-markdown-base-strong: 600 20px/35px var(--dsw-font-family);
+  --dsw-font-markdown-table: 19px/31px var(--dsw-font-family);
+  --dsw-font-markdown-table-head: 500 19px/31px var(--dsw-font-family);
+  --dsw-font-markdown-small: 18px/30px var(--dsw-font-family);
+  --dsw-font-markdown-small-strong: 600 18px/30px var(--dsw-font-family);
+  --dsw-font-markdown-code: 18px/28px var(--ds-font-family-code);
+  --dsw-font-markdown-code-block: 16px/27px var(--ds-font-family-code);
+
+  --ds-message-text-size: 20px;
+  --ds-message-text-line: 30px;
+  --ds-session-title-size: 18px;
+  --ds-session-title-line: 22px;
 }

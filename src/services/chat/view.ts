@@ -151,6 +151,9 @@ class SourceRegistry {
   }
 }
 
+/** 块尾只有一行代码围栏（```/~~~）时，角标必须换行插入，否则会贴在围栏上使其失效。 */
+const FENCE_TAIL = /(?:^|\n)[ \t]*(?:`{3,}|~{3,})[^\n]*$/
+
 /**
  * 文本块拼成一份 markdown：服务端在挂过引用的块之后另起新块，引用位置即块尾。
  * 引用之后的空白（含换行）仍留在被引用的块里，所以 [citation:N] 插在块尾空白之前。
@@ -172,6 +175,11 @@ const joinTextBlocks = (
     }
     const body = indexes.size > 0 ? block.text.trimEnd() : block.text
     markdown += body
+    if (indexes.size > 0 && FENCE_TAIL.test(body)) {
+      // 正文以代码块结尾时，直接在行尾拼角标会变成 "```[citation:1]"：
+      // 闭合围栏不再合法，代码块吞掉后续内容（角标本身也丢失）。
+      markdown += '\n'
+    }
     for (const index of indexes) {
       markdown += `[citation:${index}]`
     }

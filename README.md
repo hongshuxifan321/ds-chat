@@ -67,10 +67,6 @@ History import and export in Settings use ZIP archives. Importing replaces all l
 
 Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
 
-## Known issues
-
-- iOS Safari can show a blank first screen.
-
 ## Development
 
 | Command       | Description                  |

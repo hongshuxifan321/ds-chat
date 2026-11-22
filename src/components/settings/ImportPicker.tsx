@@ -179,7 +179,7 @@ export const ImportPicker = ({
                 {session.title ?? t('importPickUntitled')}
               </span>
               <span className={styles.importPickerMeta}>
-                {date ? `${date.slice(5)} · ` : null}
+                {date ? `${date} · ` : null}
                 {t('importPickCount', { count: session.messageCount })} ·{' '}
                 {formatBytes(sessionBytes(session))}
               </span>

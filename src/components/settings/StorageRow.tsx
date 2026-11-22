@@ -72,7 +72,7 @@ export const StorageRow = () => {
           size: formatBytes(stats.attachmentBytes),
         })
       : null,
-    lastWrite ? t('storageLastWrite', { date: lastWrite.slice(5) }) : null,
+    lastWrite ? t('storageLastWrite', { date: lastWrite }) : null,
   ].filter((part) => part !== null)
 
   return (

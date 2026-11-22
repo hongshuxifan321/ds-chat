@@ -1,9 +1,16 @@
 /**
  * 本机存储用量：浏览器给多少就显示多少，读不到就明说读不到。
  *
- * 阈值同时看「相对上限」和「绝对底线」：桌面 Chrome 实测上限 10 GiB，
- * 手机上往往只有几百 MB，只用一个百分比会在两端都失准——
- * 大配额按百分比永远到不了线，小配额按绝对字节又会天天报警。
+ * 关键事实（2026-11-22 实测，Chrome 158 / Edge 同一套 QuotaManager）：
+ * `estimate().quota` 不是「这台设备能存多少」，而是**「当前已用 + 一个固定额度」**——
+ * 空白档案里 quota − usage 恰好是 10 GiB 整；往 IndexedDB 连写 15 MB 之后，
+ * usage 涨多少 quota 就跟着涨多少，差值一动不动。所以「还剩多少」在 Chrome / Edge 上
+ * 是个常数，拿它当倒计时永远等不到零。
+ *
+ * 于是阈值改为**跟自己的历史比**：记下本机观察到过的最大余量，余量缩水到一半以下
+ * 才算黄、两成以下才算红。Chrome / Edge 上这套永远不亮（余量恒为 10 GiB），
+ * 但在 quota 是真容量的浏览器（Firefox 大约磁盘的 10%）上有效；
+ * 哪天连 Chrome 的余量也开始缩，那就说明磁盘真的紧了。
  */
 
 export type StorageLevel = 'ok' | 'low' | 'critical'
@@ -11,9 +18,12 @@ export type StorageLevel = 'ok' | 'low' | 'critical'
 export type StorageSnapshot = {
   /** 本站点已用，含应用缓存与同源其他页面写入的内容 */
   usage: number
-  /** 浏览器给本站点的上限 */
+  /** 浏览器报的上限，等于 usage + 固定额度（见文件头） */
   quota: number
-  remaining: number
+  /** quota − usage：浏览器说「此刻还能再写多少」 */
+  headroom: number
+  /** 本机观察到过的最大余量，用来判断「余量有没有缩水」 */
+  maxHeadroom: number
   level: StorageLevel
   /** 浏览器是否把本站列为持久存储；不是的话，磁盘紧张时可能被自动清理 */
   persisted: boolean
@@ -25,26 +35,45 @@ export type StorageSnapshot = {
 
 const MB = 1024 * 1024
 
-/** 绝对底线：还剩不到这个量级就提醒（按「还能再存几张图」判断，不是按百分比） */
-const LOW_FLOOR = 200 * MB
-const CRITICAL_FLOOR = 50 * MB
-/** 相对上限：配额小的设备（手机）按比例提前提醒 */
-const LOW_RATIO = 0.1
-const CRITICAL_RATIO = 0.02
+/** 余量缩到「历史最大余量」的这个比例才开始提醒 */
+const LOW_RATIO = 0.5
+const CRITICAL_RATIO = 0.2
+/** 绝对底线：余量本身就很小（配额真的就几百 MB 的设备）时按这个兜底 */
+const LOW_FLOOR = 100 * MB
+const CRITICAL_FLOOR = 20 * MB
 /** 两次读取的最小间隔：`estimate()` 是跨进程调用，不能挂在每次渲染或每次保存上 */
 const MIN_INTERVAL = 30_000
+/** 观察到的最大余量要跨会话记住，否则每次打开都以为「本来就这么多」 */
+const MAX_KEY = 'chat-demo:storage-headroom-max'
 
-export const storageLevel = (remaining: number, quota: number): StorageLevel => {
-  if (!(quota > 0)) {
+export const storageLevel = (headroom: number, maxHeadroom: number): StorageLevel => {
+  if (!(maxHeadroom > 0)) {
     return 'ok'
   }
-  if (remaining <= Math.min(CRITICAL_FLOOR, quota * CRITICAL_RATIO)) {
+  if (headroom <= Math.max(maxHeadroom * CRITICAL_RATIO, CRITICAL_FLOOR)) {
     return 'critical'
   }
-  if (remaining <= Math.min(LOW_FLOOR, quota * LOW_RATIO)) {
+  if (headroom <= Math.max(maxHeadroom * LOW_RATIO, LOW_FLOOR)) {
     return 'low'
   }
   return 'ok'
+}
+
+const readMaxHeadroom = (): number => {
+  try {
+    const stored = Number(localStorage.getItem(MAX_KEY) ?? '0')
+    return Number.isFinite(stored) && stored > 0 ? stored : 0
+  } catch {
+    return 0
+  }
+}
+
+const writeMaxHeadroom = (value: number) => {
+  try {
+    localStorage.setItem(MAX_KEY, String(value))
+  } catch {
+    // 隐私模式写不进去就算了：只影响「缩水」这个信号，不影响用量显示
+  }
 }
 
 const storage = (): StorageManager | undefined =>
@@ -87,8 +116,15 @@ const readSnapshot = async (): Promise<StorageSnapshot | null> => {
     if (!(quota > 0)) {
       return snapshot
     }
-    const remaining = Math.max(0, quota - usage)
-    const level = storageLevel(remaining, quota)
+    const headroom = Math.max(0, quota - usage)
+    // 记下见过的最大余量：Chrome / Edge 恒为固定额度，这个值就是那个常量；
+    // 别的浏览器里它就是「满额余量」，缩水才说明空间真的紧了
+    const storedMax = readMaxHeadroom()
+    const maxHeadroom = Math.max(storedMax, headroom)
+    if (maxHeadroom > storedMax) {
+      writeMaxHeadroom(maxHeadroom)
+    }
+    const level = storageLevel(headroom, maxHeadroom)
     const persisted =
       typeof api.persisted === 'function' ? await api.persisted().catch(() => false) : false
     if (level !== 'critical') {
@@ -97,7 +133,8 @@ const readSnapshot = async (): Promise<StorageSnapshot | null> => {
     const next: StorageSnapshot = {
       usage,
       quota,
-      remaining,
+      headroom,
+      maxHeadroom,
       level,
       persisted,
       at: Date.now(),

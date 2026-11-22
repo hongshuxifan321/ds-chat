@@ -63,7 +63,7 @@ export const ImportPicker = ({
     [preview.sessions, selected]
   )
   const estimated = useMemo(() => estimateLocalBytes(picked), [picked])
-  const available = storage ? storage.remaining : null
+  const available = storage ? storage.headroom : null
   const tooBig = available !== null && estimated > available
   // 平均一条多大，用来把「还差多少」折算成「再取消几条」
   const needCancel =
@@ -128,7 +128,7 @@ export const ImportPicker = ({
               ? t('importPickUnknown')
               : t('importPickLocal', {
                   used: formatBytes(storage.usage),
-                  quota: formatBytes(storage.quota),
+                  quota: formatBytes(storage.headroom),
                 })}
         </div>
       </div>

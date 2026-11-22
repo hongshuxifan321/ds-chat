@@ -141,7 +141,7 @@ export const App = () => {
             // 空间快满：写不进去之前的最后一次提醒。配额失败弹窗与「上次没保存」提示优先，
             // 那两条说的都是已经发生的事，没必要同时挂三条横幅。
             <div className={styles.saveError} role="alert">
-              <span>{t('storageBanner', { size: formatBytes(storage.remaining) })}</span>
+              <span>{t('storageBanner', { size: formatBytes(storage.headroom) })}</span>
               <Button
                 variant="outlined"
                 size="s"

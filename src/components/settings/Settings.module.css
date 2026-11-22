@@ -204,6 +204,59 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
+/* 本机存储：数字是正文，预警用左侧色条 + 文字（色条只做分级，文字本身保持高对比） */
+.storageWarn,
+.storageWarnCritical {
+  align-self: flex-start;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1px 0 1px 8px;
+  border-left: 3px solid var(--dsw-static-amber-400);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.storageWarn {
+  color: var(--dsw-alias-label-primary);
+}
+
+.storageWarnCritical {
+  border-left-color: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.storageDetails {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.storageRefresh {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-brand-primary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.storageRefresh:hover {
+  text-decoration: underline;
+}
+
+.storageRefresh:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+  text-decoration: none;
+}
+
 /* 正文字号调节条：三档胶囊，已选段填充官方蓝，最左为默认（与官方网页端一致） */
 .fontScaleCell {
   flex-direction: column;

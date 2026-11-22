@@ -360,6 +360,32 @@ export const loadFile = async (id: string): Promise<Blob | undefined> => {
   return 'blob' in record ? record.blob : fromBase64(record)
 }
 
+/**
+ * 本机数据的体检数字：会话数、附件条数与占用、最后一次成功写入的时间。
+ * 都从库里读，而不是从内存里的会话状态读——保存失败时内存照样前进，
+ * 「最后写入」必须反映真正落盘的那一次，否则它恰好在最该报警的时候看不出问题。
+ */
+export const loadLocalStats = async (): Promise<{
+  sessions: number
+  files: number
+  attachmentBytes: number
+  lastWrite: number
+}> => {
+  const [summaries, records] = await withDB((db) =>
+    Promise.all([db.getAll('sessionSummaries'), db.getAll('files')])
+  )
+  let attachmentBytes = 0
+  for (const record of records) {
+    // 只读元数据：Blob 的大小与 base64 字符串长度，不解码原件
+    attachmentBytes += 'blob' in record ? record.blob.size : record.data.length
+  }
+  let lastWrite = 0
+  for (const summary of summaries) {
+    lastWrite = Math.max(lastWrite, summary.updatedAt)
+  }
+  return { sessions: summaries.length, files: records.length, attachmentBytes, lastWrite }
+}
+
 /** 清空导入暂存：开始导入前清除上次中断（如关闭页面）遗留的数据，导入失败后清除本次写入。 */
 export const clearStaging = (): Promise<void> =>
   withDB(async (db) => {

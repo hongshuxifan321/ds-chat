@@ -5,29 +5,15 @@ import {
   type ArchivePreview,
   type ArchiveSession,
 } from '../../services/chat/history/preview.js'
+import { measureStorage, type StorageSnapshot } from '../../services/chat/storageInfo.js'
 import { formatBytes, formatDate } from '../../utils/format.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
 import styles from './Settings.module.css'
 
 type Sort = 'time' | 'size'
-type StorageInfo = { used: number; quota: number } | null
 
 const sessionBytes = (session: ArchiveSession) => session.textBytes + session.imageBytes
-
-/** 本机已用与上限；浏览器不给估算时返回 null，此时不做空间预检 */
-const readStorage = async (): Promise<StorageInfo> => {
-  const storage = (navigator as Navigator & { storage?: StorageManager }).storage
-  if (typeof storage?.estimate !== 'function') {
-    return null
-  }
-  try {
-    const { usage = 0, quota = 0 } = await storage.estimate()
-    return quota > 0 ? { used: usage, quota } : null
-  } catch {
-    return null
-  }
-}
 
 /**
  * 导入前的清单：默认一条都不选，由用户决定带哪些进来。
@@ -48,12 +34,13 @@ export const ImportPicker = ({
   const t = useTranslate()
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
   const [sort, setSort] = useState<Sort>('time')
-  // undefined = 还没读到，null = 浏览器不给估算
-  const [storage, setStorage] = useState<StorageInfo | undefined>(undefined)
+  // undefined = 还没读到，null = 浏览器不给估算（与设置页共用同一份读数）
+  const [storage, setStorage] = useState<StorageSnapshot | null | undefined>(undefined)
 
   useEffect(() => {
     let alive = true
-    void readStorage().then((info) => {
+    // 马上要往里写东西，这一次不用缓存值，直接读一遍当前空间
+    void measureStorage(true).then((info) => {
       if (alive) {
         setStorage(info)
       }
@@ -76,8 +63,7 @@ export const ImportPicker = ({
     [preview.sessions, selected]
   )
   const estimated = useMemo(() => estimateLocalBytes(picked), [picked])
-  const available =
-    storage === null || storage === undefined ? null : Math.max(0, storage.quota - storage.used)
+  const available = storage ? storage.remaining : null
   const tooBig = available !== null && estimated > available
   // 平均一条多大，用来把「还差多少」折算成「再取消几条」
   const needCancel =
@@ -141,7 +127,7 @@ export const ImportPicker = ({
             : storage === null
               ? t('importPickUnknown')
               : t('importPickLocal', {
-                  used: formatBytes(storage.used),
+                  used: formatBytes(storage.usage),
                   quota: formatBytes(storage.quota),
                 })}
         </div>

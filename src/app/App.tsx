@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { useTranslate } from '../i18n/index.js'
 import { useSettings } from '../services/settings.js'
 import { useIsMobile, useMobileViewport, usePreventPageScroll } from './viewport.js'
@@ -23,6 +23,13 @@ import { NoticeDialog } from '../components/notice/NoticeDialog.js'
 import { Toast } from '../components/base/Toast.js'
 import { showToast } from '../components/base/toastState.js'
 import { onUploadNotice } from '../services/attachments.js'
+import {
+  dismissStorageWarning,
+  getStorageSnapshot,
+  measureStorage,
+  subscribeStorage,
+} from '../services/chat/storageInfo.js'
+import { formatBytes } from '../utils/format.js'
 import { Button } from '../components/base/Button.js'
 import { stopReadAloud } from '../services/speech/readAloud.js'
 import { CollapsedSider } from '../components/sider/CollapsedSider.js'
@@ -56,6 +63,7 @@ export const App = () => {
   )
   const activeId = useChatStore((state) => state.activeId)
   const previousSaveFailures = useChatStore((state) => state.previousSaveFailures)
+  const storage = useSyncExternalStore(subscribeStorage, getStorageSnapshot)
   const backup = useBackupExport()
 
   usePreventPageScroll(isMobile)
@@ -79,6 +87,18 @@ export const App = () => {
     void initChat()
     // 首次打开先在设置里输入 API Key
     ensureApiKey()
+  }, [])
+
+  // 空间用量：启动量一次（够不够弹提示条），之后每次回到页面再量（30 秒节流）
+  useEffect(() => {
+    void measureStorage()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void measureStorage()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
   // 保存失败时先把现有内容导出来：本机写不进去的时候，这是唯一还能带走对话的办法
@@ -113,6 +133,24 @@ export const App = () => {
                 {t('historyExportBackup')}
               </Button>
               <Button variant="outlined" size="s" onClick={dismissPreviousSaveFailures}>
+                {t('dismiss')}
+              </Button>
+            </div>
+          ) : storage !== null && storage.level === 'critical' && !storage.warningDismissed &&
+            saveFailure === null ? (
+            // 空间快满：写不进去之前的最后一次提醒。配额失败弹窗与「上次没保存」提示优先，
+            // 那两条说的都是已经发生的事，没必要同时挂三条横幅。
+            <div className={styles.saveError} role="alert">
+              <span>{t('storageBanner', { size: formatBytes(storage.remaining) })}</span>
+              <Button
+                variant="outlined"
+                size="s"
+                disabled={backup.busy}
+                onClick={() => void backup.run()}
+              >
+                {t('historyExportBackup')}
+              </Button>
+              <Button variant="outlined" size="s" onClick={dismissStorageWarning}>
                 {t('dismiss')}
               </Button>
             </div>

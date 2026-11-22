@@ -23,6 +23,7 @@ import {
   type ArchivePreview,
 } from '../../services/chat/history/preview.js'
 import { isBlobStorageError, isQuotaError } from '../../services/chat/db.js'
+import { measureStorage } from '../../services/chat/storageInfo.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
@@ -46,6 +47,7 @@ import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { ImportPicker } from './ImportPicker.js'
+import { StorageRow } from './StorageRow.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -121,6 +123,7 @@ const SettingsContent = () => {
             </>
           ) : (
             <>
+              <StorageRow />
               <ApiKeyField editor={apiKeyEditor} />
               <SetupSteps onTopUpHelp={() => setHelp('topUp')} />
               <ImportHistory
@@ -223,6 +226,7 @@ const useHistoryDelete = () => {
     } finally {
       deleting.current = false
       setBusy(false)
+      void measureStorage(true)
     }
   }
 
@@ -749,6 +753,8 @@ const useHistoryImport = () => {
       releaseWakeLock()
       importing.current = false
       setBusy(false)
+      // 替换掉整库之后，已用量与条数都变了
+      void measureStorage(true)
     }
   }
 
@@ -969,6 +975,7 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
       setStatus(errorStatus('historyExportFailed', error))
     } finally {
       setBusy(false)
+      void measureStorage(true)
     }
   }
 

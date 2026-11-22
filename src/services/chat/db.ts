@@ -142,6 +142,14 @@ export const isBlobStorageError = (error: unknown): boolean =>
   error.name === 'UnknownError' &&
   error.message.includes('Blob/File data')
 
+/**
+ * 存储配额已满：再写就不接受了，重试也没用，只能腾地方。
+ * 这与「连接被关」「Blob 写不进去」不是一回事——那些重开连接或换 base64 还能救。
+ */
+export const isQuotaError = (error: unknown): boolean =>
+  error instanceof DOMException &&
+  (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+
 const BASE64_CHUNK = 0x8000
 
 const toBase64 = async (blob: Blob): Promise<string> => {

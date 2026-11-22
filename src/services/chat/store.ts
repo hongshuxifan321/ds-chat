@@ -37,6 +37,12 @@ import {
   prepareDraftMessage,
 } from './drafts.js'
 import { createLatestReminder } from './latestReminder.js'
+import {
+  dismissSaveFailures,
+  pendingSaveFailures,
+  recordSaveFailure,
+  resolveSaveFailures,
+} from './saveLog.js'
 import { readSessionId, writeSessionId } from './sessionUrl.js'
 import {
   applyEvent,
@@ -67,6 +73,13 @@ const SAFETY_CHECK = { level: 'high' } as const
 const FILE_RETRY_LIMIT = 2
 /** 退避基数，第 n 次重试等待 2^n 倍；连续失败达到上限就放弃，把原始报错展示出来 */
 const FILE_RETRY_BASE_DELAY = 1000
+/**
+ * 流式期间的落盘门槛：距上次落盘满 2 秒、且内容涨了 8 千字符就写，最长 5 秒必写一次。
+ * 原来只在开流和收尾各写一次，页面在这中间被系统杀掉，整轮回答就等于没发生过。
+ */
+const STREAM_SAVE_MIN_INTERVAL = 2000
+const STREAM_SAVE_MIN_CHARS = 8000
+const STREAM_SAVE_MAX_INTERVAL = 5000
 
 /** 阅读链接始终开启，智能搜索开关控制是否另行声明搜索工具（含边想边搜）。 */
 const serverTools = (search: boolean): CreateMessageRequest['tools'] => {
@@ -93,6 +106,13 @@ type ChatState = {
   /** 详情读取结果：`false` 未失败，`'error'` 读取失败可重试，`'lost'` 本机已没有这条记录（如存储被浏览器清掉）。 */
   sessionLoadErrors: Record<string, false | 'error' | 'lost'>
   sessionSaveErrors: Record<string, boolean>
+  /**
+   * 写不进去且重试也救不回来的保存失败（配额满）。非 null 时弹模态挡住发送：
+   * 继续聊只会产出更多写不进磁盘的内容，等于陪用户一起丢数据。
+   */
+  saveFailure: { sessionId: string } | null
+  /** 上次打开到现在没能保存的会话数，启动时提醒一次 */
+  previousSaveFailures: number
   /** null 表示新对话（欢迎页） */
   activeId: string | null
   /** 正在生成回复的会话 */
@@ -107,6 +127,8 @@ export const useChatStore = create<ChatState>(() => ({
   sessionCache: {},
   sessionLoadErrors: {},
   sessionSaveErrors: {},
+  saveFailure: null,
+  previousSaveFailures: pendingSaveFailures().length,
   activeId: null,
   streaming: {},
 }))
@@ -144,6 +166,12 @@ const pendingFiles = new Map<string, db.StoredFile[]>()
 const deletingSessions = new Set<string>()
 const deletionTasks = new Set<Promise<boolean>>()
 const streamFlushes = new Map<string, () => void>()
+/** 每个会话当前在路上的一笔保存；新请求只标脏，等它写完再补一次。 */
+const sessionSaves = new Map<string, Promise<void>>()
+/** 排队中的「还要再存一次」。 */
+const dirtySaves = new Set<string>()
+/** 流式期间最后一次落盘的时间与当时的内容长度，用于节流。 */
+const streamSaves = new Map<string, { at: number; chars: number }>()
 let accessSequence = 0
 let historyEpoch = 0
 let initTask: Promise<void> | undefined
@@ -211,43 +239,133 @@ const updateReply = (sessionId: string, reply: AssistantMessage) =>
     ),
   }))
 
+/**
+ * 落盘：同一会话同一时刻只允许一笔保存在路上，排队期间只保留「还要再存一次」这一个标记。
+ * 并发写同一个会话既会互相覆盖，也会把 IndexedDB 队列堆长——排队时页面被系统杀掉，写了一半的全丢。
+ */
 const persist = (sessionId: string) => {
-  const session = getSession(sessionId)
-  if (session) {
-    unsavedSessions.add(sessionId)
-    if (deletingSessions.has(sessionId)) {
-      return
-    }
-    const epoch = historyEpoch
-    const files = pendingFiles.get(sessionId)
-    void db
-      .saveSession(session, files)
-      .then(() => {
-        if (epoch !== historyEpoch || !getSession(sessionId)) {
-          return
-        }
-        if (pendingFiles.get(sessionId) === files) {
-          pendingFiles.delete(sessionId)
-        }
-        if (getSession(sessionId) === session) {
-          unsavedSessions.delete(sessionId)
-          set((state) => ({
-            sessionSaveErrors: Object.fromEntries(
-              Object.entries(state.sessionSaveErrors).filter(([id]) => id !== sessionId)
-            ),
-          }))
-          trimSessionCache()
-        }
-      })
-      .catch((error: unknown) => {
-        db.reportStorageError('save session')(error)
-        if (epoch === historyEpoch && getSession(sessionId)) {
-          set((state) => ({
-            sessionSaveErrors: { ...state.sessionSaveErrors, [sessionId]: true },
-          }))
-        }
-      })
+  if (!getSession(sessionId)) {
+    return
   }
+  unsavedSessions.add(sessionId)
+  if (deletingSessions.has(sessionId)) {
+    return
+  }
+  dirtySaves.add(sessionId)
+  void drainSave(sessionId)
+}
+
+/** 保存成功/失败的分流都收在这里，避免每个写入口各写一套。 */
+const drainSave = (sessionId: string): Promise<void> => {
+  const running = sessionSaves.get(sessionId)
+  if (running) {
+    return running
+  }
+  const task = (async () => {
+    // Set.delete 返回「确实删掉了」，正好当「还有一笔要写」用
+    while (dirtySaves.delete(sessionId)) {
+      const session = getSession(sessionId)
+      if (!session) {
+        return
+      }
+      const epoch = historyEpoch
+      const files = pendingFiles.get(sessionId)
+      try {
+        await db.saveSession(session, files)
+      } catch (error) {
+        // 失败就不再排下一次：配额满时无限重试只会空转，等用户腾出空间或主动重试
+        dirtySaves.delete(sessionId)
+        reportSaveFailure(sessionId, epoch, error)
+        return
+      }
+      if (epoch !== historyEpoch || !getSession(sessionId)) {
+        return
+      }
+      if (pendingFiles.get(sessionId) === files) {
+        pendingFiles.delete(sessionId)
+      }
+      if (getSession(sessionId) === session) {
+        unsavedSessions.delete(sessionId)
+        resolveSaveFailures(sessionId)
+        set((state) => ({
+          sessionSaveErrors: omitKey(state.sessionSaveErrors, sessionId),
+          saveFailure: state.saveFailure?.sessionId === sessionId ? null : state.saveFailure,
+        }))
+        trimSessionCache()
+      }
+    }
+  })()
+  sessionSaves.set(sessionId, task)
+  void task.finally(() => {
+    if (sessionSaves.get(sessionId) === task) {
+      sessionSaves.delete(sessionId)
+    }
+  })
+  return task
+}
+
+const omitKey = <T>(record: Record<string, T>, key: string): Record<string, T> =>
+  Object.fromEntries(Object.entries(record).filter(([id]) => id !== key))
+
+const reportSaveFailure = (sessionId: string, epoch: number, error: unknown) => {
+  db.reportStorageError('save session')(error)
+  // 先落证据再改界面：写不进去的时候，这条记录是唯一能复盘当时发生了什么的东西
+  recordSaveFailure(sessionId, error)
+  if (epoch !== historyEpoch || !getSession(sessionId)) {
+    return
+  }
+  set((state) => ({
+    sessionSaveErrors: { ...state.sessionSaveErrors, [sessionId]: true },
+    // 配额满重试没用，必须挡住继续聊天，否则聊得越多丢得越多
+    saveFailure: db.isQuotaError(error) ? { sessionId } : state.saveFailure,
+  }))
+}
+
+/** 本轮回答已累积的字符数：只用来判断「内容又涨了多少」，不需要精确字节。 */
+const replyChars = (reply: AssistantMessage) => {
+  let total = 0
+  for (const block of reply.blocks) {
+    if (block.type === 'text') {
+      total += block.text.length
+    } else if (block.type === 'thinking') {
+      total += block.thinking.length
+    }
+  }
+  return total
+}
+
+/**
+ * 流式进度落盘：把「一整轮回答都不写盘」的窗口压到最长 5 秒。
+ * 手机上页面随时可能被系统杀掉，收尾那一次落盘不能当作保底。
+ */
+const saveStreamProgress = (sessionId: string, chars: number) => {
+  const now = Date.now()
+  const last = streamSaves.get(sessionId)
+  const elapsed = last === undefined ? STREAM_SAVE_MAX_INTERVAL : now - last.at
+  if (elapsed < STREAM_SAVE_MIN_INTERVAL) {
+    return
+  }
+  // 攒够内容才值得写；没到 5 秒上限就先等着，省下反复重写整份会话的开销
+  if (
+    last !== undefined &&
+    elapsed < STREAM_SAVE_MAX_INTERVAL &&
+    chars - last.chars < STREAM_SAVE_MIN_CHARS
+  ) {
+    return
+  }
+  streamSaves.set(sessionId, { at: now, chars })
+  persist(sessionId)
+}
+
+/** 用户选择「继续聊（不保存）」之后收起模态；会话仍在未保存集合里，下次落盘还会再试。 */
+export const acknowledgeSaveFailure = () => {
+  set({ saveFailure: null })
+}
+
+/** 启动时那条「上次有对话没保存成功」的提示，用户看过就不再提醒。 */
+export const dismissPreviousSaveFailures = () => {
+  dismissSaveFailures()
+  set({ previousSaveFailures: 0 })
 }
 
 export const retrySaveSessions = () => {
@@ -1172,6 +1290,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         reply = { ...reply, latestReminder }
         updateReply(sessionId, reply)
         persist(sessionId)
+        streamSaves.set(sessionId, { at: Date.now(), chars: replyChars(reply) })
         const messages = toRequestMessages(
           prepared.history,
           prepared.question,
@@ -1214,6 +1333,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           } else {
             frame ||= requestAnimationFrame(flush)
           }
+          saveStreamProgress(sessionId, replyChars(reply))
         }
         reply = settleReply(reply, 'done', Date.now())
         break
@@ -1279,6 +1399,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
   } finally {
     titleRequests.delete(controller)
     streamFlushes.delete(sessionId)
+    streamSaves.delete(sessionId)
     cancelAnimationFrame(frame)
     updateReply(sessionId, reply)
     set((state) => ({

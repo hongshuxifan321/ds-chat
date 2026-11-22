@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTranslate } from '../i18n/index.js'
 import { useSettings } from '../services/settings.js'
 import { useIsMobile, useMobileViewport, usePreventPageScroll } from './viewport.js'
 import {
   bindChatPersistence,
+  dismissPreviousSaveFailures,
   initChat,
   retrySaveSessions,
   selectSession,
   useChatStore,
 } from '../services/chat/store.js'
-import { BackupError, downloadHistory } from '../services/chat/backup.js'
 import { SearchPanel } from '../components/search/SearchPanel.js'
 import { closeSearchPanel } from '../components/search/searchPanelState.js'
 import { SessionView } from '../components/session/SessionView.js'
@@ -17,6 +17,8 @@ import { MobileHeader } from '../components/session/MobileHeader.js'
 import { Welcome } from '../components/session/Welcome.js'
 import { ensureApiKey } from '../components/settings/settingsDialogState.js'
 import { SettingsDialog } from '../components/settings/SettingsDialog.js'
+import { SaveFailureDialog } from '../components/storage/SaveFailureDialog.js'
+import { useBackupExport } from '../components/storage/useBackupExport.js'
 import { NoticeDialog } from '../components/notice/NoticeDialog.js'
 import { Toast } from '../components/base/Toast.js'
 import { showToast } from '../components/base/toastState.js'
@@ -37,6 +39,8 @@ export const App = () => {
   const ready = useChatStore((state) => state.ready)
   const initError = useChatStore((state) => state.initError)
   const saveError = useChatStore((state) => Object.values(state.sessionSaveErrors).some(Boolean))
+  // 配额满会弹模态，同一条信息不必再在顶部重复一遍
+  const saveFailure = useChatStore((state) => state.saveFailure)
   const importingHistory = useChatStore((state) => state.importingHistory)
   const session = useChatStore((state) =>
     state.activeId !== null && Object.hasOwn(state.sessionCache, state.activeId)
@@ -51,7 +55,8 @@ export const App = () => {
     state.activeId === null ? false : Object.hasOwn(state.streaming, state.activeId)
   )
   const activeId = useChatStore((state) => state.activeId)
-  const [backingUp, setBackingUp] = useState(false)
+  const previousSaveFailures = useChatStore((state) => state.previousSaveFailures)
+  const backup = useBackupExport()
 
   usePreventPageScroll(isMobile)
 
@@ -77,23 +82,7 @@ export const App = () => {
   }, [])
 
   // 保存失败时先把现有内容导出来：本机写不进去的时候，这是唯一还能带走对话的办法
-  const onBackup = async () => {
-    setBackingUp(true)
-    try {
-      const { missing } = await downloadHistory()
-      showToast(missing > 0 ? t('historyExportSkipped', { count: missing }) : t('historyExported'))
-    } catch (error) {
-      showToast(
-        error instanceof BackupError
-          ? t(error.key)
-          : t('historyExportFailed', {
-              message: error instanceof Error ? error.message : String(error),
-            })
-      )
-    } finally {
-      setBackingUp(false)
-    }
-  }
+  const onBackup = backup.run
 
   const loadText =
     !ready
@@ -112,7 +101,23 @@ export const App = () => {
       <div ref={frameRef} className={styles.frame}>
         {isMobile ? <MobileSider /> : siderCollapsed ? null : <Sider />}
         <main className={styles.main}>
-          {saveError ? (
+          {previousSaveFailures > 0 ? (
+            <div className={styles.saveError} role="alert">
+              <span>{t('sessionSavePreviousFailed', { count: previousSaveFailures })}</span>
+              <Button
+                variant="outlined"
+                size="s"
+                disabled={backup.busy}
+                onClick={() => void backup.run()}
+              >
+                {t('historyExportBackup')}
+              </Button>
+              <Button variant="outlined" size="s" onClick={dismissPreviousSaveFailures}>
+                {t('dismiss')}
+              </Button>
+            </div>
+          ) : null}
+          {saveError && !saveFailure ? (
             <div className={styles.saveError} role="alert">
               <span>{t('sessionSaveFailed')}</span>
               <Button
@@ -126,7 +131,7 @@ export const App = () => {
               <Button
                 variant="outlined"
                 size="s"
-                disabled={importingHistory || backingUp}
+                disabled={importingHistory || backup.busy}
                 onClick={() => void onBackup()}
               >
                 {t('historyExportBackup')}
@@ -172,6 +177,7 @@ export const App = () => {
       </div>
       <SettingsDialog />
       <NoticeDialog />
+      <SaveFailureDialog />
       <Toast />
     </>
   )

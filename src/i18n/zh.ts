@@ -36,6 +36,12 @@ export const zh = {
   sessionLoading: '正在加载对话...',
   sessionListLoadFailed: '对话列表加载失败，请重试',
   sessionLoadFailed: '对话加载失败，请重试',
+  sessionSaveQuotaTitle: '本机已经存不下新内容',
+  sessionSaveQuotaBody:
+    '这台设备的浏览器不再给这个网页更多空间了。现在聊的内容关掉页面就会丢，先导出备份，再删掉一些不需要的对话腾地方。',
+  sessionSaveContinue: '继续聊（不保存）',
+  sessionSavePreviousFailed: '上次有 {count} 条对话没能保存到本机',
+  dismiss: '知道了',
   sessionLost:
     '这条对话在本机已经找不到，本地数据可能被浏览器清理过。刷新页面后它会从列表里消失，需要恢复的话请重新导入备份。',
   sessionSaveFailed:

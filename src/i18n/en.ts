@@ -51,6 +51,12 @@ export const en = {
     'This chat is no longer on this device; local data may have been cleared by the browser. It will disappear from the list after a refresh — import a backup to restore it.',
   sessionSaveFailed:
     'Chats or attachments have not been saved locally. Retry, or back up first.',
+  sessionSaveQuotaTitle: 'This device is out of space',
+  sessionSaveQuotaBody:
+    'The browser will not give this page any more room. Anything you chat about now is lost when the page closes — export a backup first, then delete some chats you no longer need.',
+  sessionSaveContinue: 'Keep chatting (not saved)',
+  sessionSavePreviousFailed: '{count} chat(s) from last time could not be saved',
+  dismiss: 'Got it',
   sessionDeleteFailed: 'Unable to delete this chat. Please try again.',
   crashTitle: 'Something broke',
   crashHint:

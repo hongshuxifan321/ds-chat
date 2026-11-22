@@ -17,7 +17,7 @@ import {
 } from '../../services/chat/backup.js'
 import type { ImportSource } from '../../services/chat/history/archiveSource.js'
 import type { ImportProgress } from '../../services/chat/history/importArchive.js'
-import { isBlobStorageError } from '../../services/chat/db.js'
+import { isBlobStorageError, isQuotaError } from '../../services/chat/db.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
@@ -607,10 +607,6 @@ const requestWakeLock = async (): Promise<WakeSentinel | null> => {
     return null
   }
 }
-
-const isQuotaError = (error: unknown): boolean =>
-  error instanceof DOMException &&
-  (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
 
 /** 兜底提示后面附带的技术原因：用户截图反馈时能直接看出卡在哪一步，过长只留开头一段 */
 const ERROR_DETAIL_MAX = 120

@@ -323,11 +323,13 @@ export async function* readArchive(
       .map((entry) => ({ path: entry.path, size: entry.size }))
   )
   for (const [index, entry] of directory.entries.entries()) {
-    const boundary = directory.entries[index + 1]?.offset ?? directory.offset
-    const start = await readEntryOffset(file, entry, boundary)
+    // 先判「要不要」再读本地头：跳过一条要两次切片读（本地头 + 文件名），
+    // 一份上千条目的归档里这能占到全部时间的九成，而跳过的条目本来就不校验 CRC。
     if (entry.path.endsWith('/') || !wanted(entry.path)) {
       continue
     }
+    const boundary = directory.entries[index + 1]?.offset ?? directory.offset
+    const start = await readEntryOffset(file, entry, boundary)
     let completed = false
     yield {
       path: entry.path,

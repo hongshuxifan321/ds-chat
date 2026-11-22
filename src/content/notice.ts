@@ -5,7 +5,7 @@
  */
 
 /** 面板底部显示的「最后更新」日期 */
-export const NOTICE_UPDATED = '2026-11-21'
+export const NOTICE_UPDATED = '2026-11-22'
 
 export type NoticeBlock =
   /** 一段正文 */
@@ -91,6 +91,11 @@ export const NOTICE_SECTIONS: NoticeSection[] = [
   {
     title: '现在有的功能',
     blocks: [
+      {
+        kind: 'item',
+        title: '选择性导入',
+        text: '在「设置 → 数据管理 → 导入历史对话」选好 ZIP 之后，不再整包全塞进来，而是先列一份清单：一条对话一行，写着日期、多少条消息、占多大，默认一条都不勾。可以全选、反选，也可以按体积从大到小排。清单底下一直算着「已选几条、多大」和「导入后本机还剩多少」；装不下的时候确认键是灰的，还会告诉你大概再取消几条就够。要留神：导入本身仍是整体替换，只有勾上的会留下，本机原来的对话会被替掉——先导出一份备份再动手。',
+      },
       {
         kind: 'item',
         title: '字号调节',

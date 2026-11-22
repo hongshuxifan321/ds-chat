@@ -80,10 +80,11 @@ const sourceBytes = (source: ImportSource): number =>
     : source.files.reduce((total, file) => total + file.size, 0)
 
 /**
- * 导入前预检剩余额度：连压缩包本身都放不下时必然半途失败。
- * 早点说清楚「空间不足」，比让用户读完十几分钟再看到「文件可能已损坏」有用。
+ * 导入前预检剩余额度：替换是「先把新数据写进暂存、再原子换掉旧数据」，
+ * 所以峰值是「已用 + 这次要写进去的量」，不是只有后者。
+ * `expected` 是调用方按清单算出的体积；给不出时退回归档文件大小（压缩后，偏小）。
  */
-const ensureRoom = async (source: ImportSource): Promise<void> => {
+const ensureRoom = async (source: ImportSource, expected?: number): Promise<void> => {
   const storage = (navigator as Navigator & { storage?: StorageManager }).storage
   if (typeof storage?.estimate !== 'function') {
     return
@@ -91,7 +92,7 @@ const ensureRoom = async (source: ImportSource): Promise<void> => {
   let tight = false
   try {
     const { quota = 0, usage = 0 } = await storage.estimate()
-    tight = quota > 0 && sourceBytes(source) > quota - usage
+    tight = quota > 0 && usage + (expected ?? sourceBytes(source)) > quota
   } catch {
     // 拿不到估算就照常导入，真的放不下会在写入时给出存储错误。
     return
@@ -104,20 +105,28 @@ const ensureRoom = async (source: ImportSource): Promise<void> => {
 /**
  * 确认覆盖后调用：先检查归档格式与版本，校验失败时保留正在生成的回答；
  * 通过后从 ZIP 或解压后的目录流式写入暂存，成功才替换原有会话与图片原件。
+ * `selected` 只导入这些会话（缺省为全部）；`bytes` 是清单算出的体积，供预检使用。
  * 返回成功导入的会话数、因结构异常被跳过的会话数，以及没能存下的图片张数。
  */
 export const importHistory = (
   source: ImportSource,
-  onProgress?: (progress: ImportProgress) => void
+  options: {
+    selected?: ReadonlySet<string>
+    bytes?: number
+    onProgress?: (progress: ImportProgress) => void
+  } = {}
 ): Promise<{ imported: number; skipped: number; skippedImages: number }> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
     await checkArchiveFormat(source)
-    await ensureRoom(source)
+    await ensureRoom(source, options.bytes)
     let skipped = 0
     let skippedImages = 0
     const imported = await replaceHistory(async () => {
-      const result = await importArchive(source, onProgress)
+      const result = await importArchive(source, {
+        selected: options.selected,
+        onProgress: options.onProgress,
+      })
       skipped = result.skipped
       skippedImages = result.skippedImages
     })

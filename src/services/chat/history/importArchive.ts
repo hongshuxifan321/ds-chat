@@ -2,7 +2,13 @@ import * as db from '../db.js'
 import { openArchive, type ImportSource } from './archiveSource.js'
 import { BackupError, fail } from './errors.js'
 import type { SessionIndexEntry } from './format.js'
-import { INDEX_PATH, MANIFEST_PATH, USER_PATH, parseSessionPath } from './paths.js'
+import {
+  INDEX_PATH,
+  MANIFEST_PATH,
+  parseSessionFilesPath,
+  parseSessionPath,
+  USER_PATH,
+} from './paths.js'
 import { checkManifest, readSessionFile, readSessionIndex } from './schema.js'
 import { toLocalSession } from './toLocal.js'
 import {
@@ -77,14 +83,6 @@ export const checkArchiveFormat = async (source: ImportSource): Promise<void> =>
   fail(source.kind === 'dir' ? 'backupFolderMissing' : 'backupUnrecognized')
 }
 
-/**
- * 流式导入：manifest → user（不导入）→ 全部会话 JSON → index → 全部图片。
- * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
- * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
- * 单个会话结构异常时跳过它、其余照常导入；归档本身损坏（解压、CRC、文件缺失）才整体失败。
- * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
- * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数与没能存下的图片张数。
- */
 /** 导入进度：会话与附件分两个阶段，最后是写入本地。界面据此换文案，避免停在 100% 不动 */
 export type ImportProgress =
   | { phase: 'sessions'; done: number; total: number }
@@ -94,13 +92,37 @@ export type ImportProgress =
 /** 会话目录下的图片条目 */
 const SESSION_FILE_PATH = /^chat_sessions\/[^/]+_files\//
 
+export type ImportOptions = {
+  /**
+   * 只导入这些会话；未选中的会话连同它的图片都不解压。
+   * 缺省表示整份归档都导入。
+   */
+  selected?: ReadonlySet<string>
+  onProgress?: (progress: ImportProgress) => void
+}
+
+/**
+ * 流式导入：manifest → user（不导入）→ 全部会话 JSON → index → 全部图片。
+ * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
+ * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
+ * 单个会话结构异常时跳过它、其余照常导入；归档本身损坏（解压、CRC、文件缺失）才整体失败。
+ * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
+ * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数与没能存下的图片张数。
+ */
 export const importArchive = async (
   source: ImportSource,
-  onProgress?: (progress: ImportProgress) => void
+  { selected, onProgress }: ImportOptions = {}
 ): Promise<{ skipped: number; skippedImages: number }> => {
   if (source.kind === 'zip' && !(await isZipFile(source.file))) {
     fail(/\.json$/i.test(source.file.name) ? 'backupInsideArchive' : 'backupUnrecognized')
   }
+  /** 未勾选的会话与其图片一律跳过；跳过时不命中解压，因此不校验 CRC */
+  const skip = selected
+    ? (path: string) => {
+        const id = parseSessionPath(path) ?? parseSessionFilesPath(path)
+        return id !== null && !selected.has(id)
+      }
+    : undefined
   const imported = new Set<string>()
   /** 解析失败被跳过的会话数；这些会话的图片条目在下面一并跳过 */
   let skipped = 0
@@ -159,10 +181,15 @@ export const importArchive = async (
 
   try {
     // 中央目录解析完先算出会话与附件总数，进度才有分母（复用同一次解析，不多读一遍）。
-    for await (const entry of openArchive(source, (paths) => {
-      total = paths.filter((path) => parseSessionPath(path) !== null).length
-      fileTotal = paths.filter((path) => SESSION_FILE_PATH.test(path)).length
-    })) {
+    // 回调拿到的已经是「将要读出」的条目：未勾选的会话与图片不在其中。
+    for await (const entry of openArchive(
+      source,
+      (entries) => {
+        total = entries.filter((item) => parseSessionPath(item.path) !== null).length
+        fileTotal = entries.filter((item) => SESSION_FILE_PATH.test(item.path)).length
+      },
+      { skip }
+    )) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
       if (!manifest) {

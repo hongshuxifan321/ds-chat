@@ -1,4 +1,11 @@
-import { readArchive, type ArchiveEntry } from './zipReader.js'
+import {
+  readArchive,
+  readDirectoryEntries,
+  readEntry,
+  readEntryByPath,
+  type ArchiveEntry,
+  type ArchiveEntryMeta,
+} from './zipReader.js'
 
 /**
  * 导入来源：官方导出的 ZIP，或系统自动解压后用户手上的同名文件夹。
@@ -8,6 +15,8 @@ import { readArchive, type ArchiveEntry } from './zipReader.js'
 export type ImportSource =
   | { kind: 'zip'; file: File }
   | { kind: 'dir'; files: File[] }
+
+export type { ArchiveEntryMeta }
 
 const MANIFEST = 'manifest.json'
 
@@ -92,18 +101,42 @@ const directoryEntries = (files: File[]): ArchiveEntry[] => {
 }
 
 /**
- * 打开归档来源：先回调全部条目名（导入进度需要分母），再逐条产出。
+ * 打开归档来源：先回调全部条目名与大小（导入进度需要分母），再逐条产出。
  * ZIP 与解压后的目录都走这里，调用方不区分来源。
  */
 export async function* openArchive(
   source: ImportSource,
-  onPaths?: (paths: string[]) => void
+  onDirectory?: (entries: ArchiveEntryMeta[]) => void,
+  options?: { skip?: (path: string) => boolean }
 ): AsyncGenerator<ArchiveEntry> {
   if (source.kind === 'zip') {
-    yield* readArchive(source.file, onPaths)
+    yield* readArchive(source.file, onDirectory, options)
     return
   }
   const entries = directoryEntries(source.files)
-  onPaths?.(entries.map((entry) => entry.path))
-  yield* entries
+  const wanted = options?.skip ? entries.filter((entry) => !options.skip?.(entry.path)) : entries
+  onDirectory?.(wanted.map((entry) => ({ path: entry.path, size: entry.size })))
+  yield* wanted
+}
+
+/**
+ * 只列条目名与解压后大小，不解压任何内容。
+ * 导入前的体积预览用它；ZIP 走中央目录，目录来源直接读文件大小。
+ */
+export const listArchiveEntries = async (source: ImportSource): Promise<ArchiveEntryMeta[]> =>
+  source.kind === 'zip'
+    ? readDirectoryEntries(source.file)
+    : directoryEntries(source.files).map((entry) => ({ path: entry.path, size: entry.size }))
+
+/** 读取单个文本条目；条目不存在时返回 null。 */
+export const readArchiveText = async (
+  source: ImportSource,
+  path: string
+): Promise<string | null> => {
+  if (source.kind === 'zip') {
+    const blob = await readEntryByPath(source.file, path)
+    return blob ? blob.text() : null
+  }
+  const entry = directoryEntries(source.files).find((item) => item.path === path)
+  return entry ? (await readEntry(entry)).text() : null
 }

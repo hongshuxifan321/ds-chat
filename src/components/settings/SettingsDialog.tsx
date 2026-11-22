@@ -17,6 +17,11 @@ import {
 } from '../../services/chat/backup.js'
 import type { ImportSource } from '../../services/chat/history/archiveSource.js'
 import type { ImportProgress } from '../../services/chat/history/importArchive.js'
+import {
+  estimateLocalBytes,
+  previewArchive,
+  type ArchivePreview,
+} from '../../services/chat/history/preview.js'
 import { isBlobStorageError, isQuotaError } from '../../services/chat/db.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
@@ -40,6 +45,7 @@ import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
+import { ImportPicker } from './ImportPicker.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -71,6 +77,7 @@ const SettingsContent = () => {
   const historyImport = useHistoryImport()
   const historyDelete = useHistoryDelete()
   const replacingHistory = useChatStore((state) => state.importingHistory)
+  const existingCount = useChatStore((state) => state.sessions.length)
   // 教程弹窗：充值指引与官方历史导出步骤共用一个开关
   const [help, setHelp] = useState<HelpTopic | null>(null)
   const historyBusy = historyImport.busy || historyDelete.busy || replacingHistory
@@ -143,7 +150,15 @@ const SettingsContent = () => {
           )}
         </div>
       </Modal>
-      {historyImport.source ? <ImportConfirm historyImport={historyImport} /> : null}
+      {historyImport.preparing ? <ImportPreparing /> : null}
+      {historyImport.preview ? (
+        <ImportPicker
+          preview={historyImport.preview}
+          existing={existingCount}
+          onCancel={historyImport.cancel}
+          onConfirm={(selected) => void historyImport.confirm(selected)}
+        />
+      ) : null}
       {historyImport.busy ? <ImportProgress historyImport={historyImport} /> : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
       {help ? <HelpModal topic={help} onClose={() => setHelp(null)} /> : null}
@@ -413,30 +428,12 @@ const TtsVoiceSetting = () => {
   )
 }
 
-/** 覆盖导入的二次确认，叠在设置弹窗上 */
-const ImportConfirm = ({
-  historyImport,
-}: {
-  historyImport: ReturnType<typeof useHistoryImport>
-}) => {
+/** 扫描中央目录期间给个反馈：几千条的归档也要一两秒 */
+const ImportPreparing = () => {
   const t = useTranslate()
   return (
-    <Modal
-      title={t('historyImportConfirmTitle')}
-      className={styles.importConfirm}
-      onClose={historyImport.cancel}
-      footer={
-        <>
-          <Button variant="outlined" size="m" autoFocus onClick={historyImport.cancel}>
-            {t('cancel')}
-          </Button>
-          <Button variant="dangerOutlined" size="m" onClick={() => void historyImport.confirm()}>
-            {t('historyImportConfirm')}
-          </Button>
-        </>
-      }
-    >
-      <div className={styles.importConfirmText}>{t('historyImportConfirmDescription')}</div>
+    <Modal title={t('importPickReading')} className={styles.importConfirm} onClose={() => {}}>
+      <div className={styles.importConfirmText}>{t('importPickReadingHint')}</div>
     </Modal>
   )
 }
@@ -616,28 +613,88 @@ const describeError = (error: unknown): string => {
   return text.length > ERROR_DETAIL_MAX ? `${text.slice(0, ERROR_DETAIL_MAX)}…` : text
 }
 
-/** 选归档后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
+/**
+ * 选归档后先读清单：有索引就列出每条对话的日期、消息数与体积，由用户勾选；
+ * 没有索引（更早的导出格式）退回整体导入的二次确认。确认后才检查文件并执行导入。
+ */
 const useHistoryImport = () => {
   const [source, setSource] = useState<ImportSource | null>(null)
+  const [preview, setPreview] = useState<ArchivePreview | null>(null)
+  const [preparing, setPreparing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<ImportProgress | null>(null)
   const [status, setStatus] = useState<Status>(null)
   const importing = useRef(false)
   const hidden = useRef(false)
   const wakeLock = useRef<WakeSentinel | null>(null)
+  /** 连续选两次文件时，先发起的那次清单结果不能覆盖后一次 */
+  const previewToken = useRef(0)
 
   const releaseWakeLock = () => {
     void wakeLock.current?.release().catch(() => {})
     wakeLock.current = null
   }
 
-  const confirm = async () => {
+  const reset = () => {
+    previewToken.current += 1
+    setSource(null)
+    setPreview(null)
+    setPreparing(false)
+  }
+
+  const select = (next: ImportSource) => {
+    const token = ++previewToken.current
+    setSource(next)
+    setPreview(null)
+    setStatus(null)
+    setPreparing(true)
+    void (async () => {
+      try {
+        const result = await previewArchive(next)
+        if (token !== previewToken.current) {
+          return
+        }
+        if (result === null) {
+          // 导入层本来就要求索引齐全（`importArchive` 缺索引直接判归档不完整），
+          // 与其让用户确认一次再失败，不如现在就说清楚
+          setSource(null)
+          setStatus({ key: 'importPickNoIndex', error: true })
+        } else {
+          setPreview(result)
+        }
+      } catch (error) {
+        if (token !== previewToken.current) {
+          return
+        }
+        setSource(null)
+        setStatus(errorStatus('historyImportFailed', error))
+      } finally {
+        if (token === previewToken.current) {
+          setPreparing(false)
+        }
+      }
+    })()
+  }
+
+  const cancel = () => {
+    if (!importing.current) {
+      reset()
+    }
+  }
+
+  const confirm = async (selected?: ReadonlySet<string>) => {
     if (!source || importing.current) {
       return
     }
     importing.current = true
     hidden.current = false
-    setSource(null)
+    // 清单算出的体积用于空间预检；没有勾选（老归档）时退回按归档大小判断
+    const bytes = selected
+      ? estimateLocalBytes(
+          preview ? preview.sessions.filter((session) => selected.has(session.id)) : []
+        )
+      : undefined
+    reset()
     setBusy(true)
     setProgress(null)
     setStatus(null)
@@ -656,7 +713,11 @@ const useHistoryImport = () => {
     }
     document.addEventListener('visibilitychange', onHidden)
     try {
-      const { imported, skipped, skippedImages } = await importHistory(source, setProgress)
+      const { imported, skipped, skippedImages } = await importHistory(source, {
+        selected,
+        bytes,
+        onProgress: setProgress,
+      })
       setStatus(
         skippedImages > 0
           ? {
@@ -693,11 +754,13 @@ const useHistoryImport = () => {
 
   return {
     source,
+    preview,
+    preparing,
     busy,
     progress,
     status,
-    select: setSource,
-    cancel: () => setSource(null),
+    select,
+    cancel,
     confirm,
   }
 }

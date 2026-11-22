@@ -53,7 +53,10 @@ export const en = {
     'Chats or attachments have not been saved locally. Retry, or back up first.',
   sessionSaveQuotaTitle: 'This device is out of space',
   sessionSaveQuotaBody:
-    'The browser will not give this page any more room. Anything you chat about now is lost when the page closes — export a backup first, then delete some chats you no longer need.',
+    'The latest part of this chat never made it onto this device — closing the page loses it. Exporting packs every chat here into one zip, including the unsaved parts, and you can pick which ones to restore later. Most space is usually taken by images; deleting old chats with large attachments frees some.',
+  sessionSaveExport: 'Export all chats',
+  sessionSaveExported: 'Exported {name}',
+  sessionSaveFreeSpace: 'Free up space',
   sessionSaveContinue: 'Keep chatting (not saved)',
   sessionSavePreviousFailed: '{count} chat(s) from last time could not be saved',
   dismiss: 'Got it',

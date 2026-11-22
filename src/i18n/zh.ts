@@ -38,7 +38,10 @@ export const zh = {
   sessionLoadFailed: '对话加载失败，请重试',
   sessionSaveQuotaTitle: '本机已经存不下新内容',
   sessionSaveQuotaBody:
-    '这台设备的浏览器不再给这个网页更多空间了。现在聊的内容关掉页面就会丢，先导出备份，再删掉一些不需要的对话腾地方。',
+    '这条对话最近的内容没存进本机，关掉页面就会丢。导出会把本机所有对话打成一个 zip，连没存下来的部分一起带走，以后想恢复哪几条都可以挑。空间多半是被图片占着，删掉带大图的旧对话能腾出一些。',
+  sessionSaveExport: '导出全部对话',
+  sessionSaveExported: '已导出 {name}',
+  sessionSaveFreeSpace: '去腾空间',
   sessionSaveContinue: '继续聊（不保存）',
   sessionSavePreviousFailed: '上次有 {count} 条对话没能保存到本机',
   dismiss: '知道了',

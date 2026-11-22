@@ -1,0 +1,7 @@
+.exported {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}

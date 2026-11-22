@@ -314,11 +314,17 @@ const reportSaveFailure = (sessionId: string, epoch: number, error: unknown) => 
   if (epoch !== historyEpoch || !getSession(sessionId)) {
     return
   }
+  const quota = db.isQuotaError(error)
   set((state) => ({
     sessionSaveErrors: { ...state.sessionSaveErrors, [sessionId]: true },
     // 配额满重试没用，必须挡住继续聊天，否则聊得越多丢得越多
-    saveFailure: db.isQuotaError(error) ? { sessionId } : state.saveFailure,
+    saveFailure: quota ? { sessionId } : state.saveFailure,
   }))
+  if (quota) {
+    // 停掉这一轮生成：后面每个字都写不进本机，让它继续跑只是让用户多看一段会丢的内容，
+    // 而且每 5 秒的进度落盘还会反复触发同一个模态。
+    getStreamController(sessionId)?.abort()
+  }
 }
 
 /** 本轮回答已累积的字符数：只用来判断「内容又涨了多少」，不需要精确字节。 */
@@ -397,12 +403,23 @@ export const bindChatPersistence = () => {
   }
   document.addEventListener('visibilitychange', onVisibilityChange)
   window.addEventListener('pagehide', save)
+  // 关页面时再拦一道：上面两条是「尽力再存一次」，这条是「存不下就别悄悄关掉」。
+  // 浏览器只显示自己的固定文案，这里只能决定拦不拦。
+  const onBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (get().importingHistory || unsavedSessions.size === 0) {
+      return
+    }
+    event.preventDefault()
+    event.returnValue = ''
+  }
+  window.addEventListener('beforeunload', onBeforeUnload)
   // 浏览器关掉连接（回收存储、清站点数据）后重开并立刻重存一次：
   // 用户可能没注意到提示就关了页面，这一存是最后的机会。
   const unwatchConnection = db.onConnectionClosed(retrySaveSessions)
   return () => {
     document.removeEventListener('visibilitychange', onVisibilityChange)
     window.removeEventListener('pagehide', save)
+    window.removeEventListener('beforeunload', onBeforeUnload)
     unwatchConnection()
   }
 }

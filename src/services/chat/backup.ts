@@ -61,8 +61,8 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob; missing: nu
     return { name: backupFileName(now), blob, missing }
   })
 
-/** 导出并触发浏览器下载，返回被跳过的会话数；失败原因交给调用方提示。 */
-export const downloadHistory = async (): Promise<{ missing: number }> => {
+/** 导出并触发浏览器下载，返回被跳过的会话数与文件名；失败原因交给调用方提示。 */
+export const downloadHistory = async (): Promise<{ missing: number; name: string }> => {
   const { name, blob, missing } = await exportHistory()
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -70,7 +70,7 @@ export const downloadHistory = async (): Promise<{ missing: number }> => {
   link.download = name
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
-  return { missing }
+  return { missing, name }
 }
 
 /** 归档大小：目录来源按文件大小求和。 */

@@ -262,7 +262,8 @@ export const zh = {
     '请保持屏幕常亮，不要切换到后台或锁屏。导入在本页面进行，页面被挂起就会中断。',
   historyImportingPreparing: '正在读取归档…',
   historyImportingProgress: '已处理 {done} / {total} 个对话',
-  historyImportingFiles: '已保存 {done} / {total} 个附件',
+  historyImportingWorking:
+    '已处理 {sessionsDone} / {sessionsTotal} 个对话 · 已保存 {filesDone} / {filesTotal} 个附件',
   historyImportingSaving: '正在写入本地，请不要关闭页面…',
   historyImportingProcessed: '已处理 {count} 个对话',
   historyImportInterrupted:

@@ -78,10 +78,19 @@ export const checkArchiveFormat = async (source: ImportSource): Promise<void> =>
   fail(source.kind === 'dir' ? 'backupFolderMissing' : 'backupUnrecognized')
 }
 
-/** 导入进度：会话与附件分两个阶段，最后是写入本地。界面据此换文案，避免停在 100% 不动 */
+/**
+ * 导入进度：会话与附件各自计数，合成一条单调前进的进度。
+ * 图片现在随所属会话一起写（上游 v0.1.4），两边是交替推进的；
+ * 若按「阶段」分别报，文案与进度条会在两者之间来回跳，所以只报一条合计。
+ */
 export type ImportProgress =
-  | { phase: 'sessions'; done: number; total: number }
-  | { phase: 'files'; done: number; total: number }
+  | {
+      phase: 'working'
+      sessionsDone: number
+      sessionsTotal: number
+      filesDone: number
+      filesTotal: number
+    }
   | { phase: 'saving' }
 
 /** 会话目录下的图片条目 */
@@ -139,6 +148,7 @@ export const importArchive = async (
   /**
    * 界面既要有「在动」的反馈，又不能被几千个会话刷爆：首个与末个必报，其余最多每 100ms 报一次。
    * 早先按「每 10 个」回报，少于 10 个对话的归档会整段显示 0。
+   * 会话与附件合成一条：图片随会话交替写入，分开报会让文案与进度条来回跳。
    */
   const report = (force = false) => {
     const now = Date.now()
@@ -146,15 +156,13 @@ export const importArchive = async (
       return
     }
     lastReport = now
-    onProgress?.({ phase: 'sessions', done: imported.size, total: sessionTotal })
-  }
-  const reportFiles = (force = false) => {
-    const now = Date.now()
-    if (!force && now - lastReport < PROGRESS_INTERVAL_MS) {
-      return
-    }
-    lastReport = now
-    onProgress?.({ phase: 'files', done: savedFiles, total: fileTotal })
+    onProgress?.({
+      phase: 'working',
+      sessionsDone: imported.size,
+      sessionsTotal: sessionTotal,
+      filesDone: savedFiles,
+      filesTotal: fileTotal,
+    })
   }
 
   /** 会话 ID → 该会话目录下的图片条目：图片可能排在自己会话之前，先按路径归位 */
@@ -222,7 +230,7 @@ export const importArchive = async (
     firstImageOffset.set(id, entry.offset)
     stored.set(id, blob.type)
     savedFiles += 1
-    reportFiles(savedFiles === fileTotal)
+    report(savedFiles === fileTotal && imported.size === sessionTotal)
     if (imageBatch.length >= IMAGE_BATCH_COUNT || imageBatchBytes >= IMAGE_BATCH_BYTES) {
       await flushImages()
     }
@@ -353,9 +361,6 @@ export const importArchive = async (
   await flushImages()
   // 会话与附件都读完了，剩下回填 MIME 和替换正式数据：换一条文案，别让进度停在 100%
   report(true)
-  if (fileTotal > 0) {
-    reportFiles(true)
-  }
   onProgress?.({ phase: 'saving' })
   // 只回填归档里确实引用了图片的会话，省掉逐条扫暂存
   const targetSessions = new Set<string>()

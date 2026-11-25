@@ -454,23 +454,41 @@ const ImportProgress = ({
 }) => {
   const t = useTranslate()
   const progress = historyImport.progress
-  const counted = progress !== null && progress.phase !== 'saving' ? progress : null
-  const total = counted?.total ?? 0
+  const working = progress?.phase === 'working' ? progress : null
+  /**
+   * 附件随会话交替写入，两边的计数是交叉往前走的。
+   * 按「阶段」分别显示会让文案和进度条在两者之间来回跳，所以合成一条：
+   * 进度条按「会话数 + 附件数」合计，文案两个数一起显示。
+   */
+  const units = working ? working.sessionsTotal + working.filesTotal : 0
+  const done = working
+    ? Math.min(working.sessionsDone, working.sessionsTotal) +
+      Math.min(working.filesDone, working.filesTotal)
+    : 0
   const percent =
-    counted && total > 0 ? Math.min(100, Math.round((counted.done / total) * 100)) : 0
+    progress?.phase === 'saving'
+      ? 100
+      : units > 0
+        ? Math.min(100, Math.round((done / units) * 100))
+        : 0
   const label = () => {
     if (!progress) {
       return t('historyImportingPreparing')
     }
-    if (progress.phase === 'saving' || (progress.phase === 'files' && progress.total === 0)) {
+    if (progress.phase === 'saving' || units === 0) {
       return t('historyImportingSaving')
     }
-    if (progress.phase === 'files') {
-      return t('historyImportingFiles', { done: progress.done, total: progress.total })
+    if (working && working.filesTotal > 0) {
+      return t('historyImportingWorking', {
+        sessionsDone: working.sessionsDone,
+        sessionsTotal: working.sessionsTotal,
+        filesDone: working.filesDone,
+        filesTotal: working.filesTotal,
+      })
     }
-    return progress.total > 0
-      ? t('historyImportingProgress', { done: progress.done, total: progress.total })
-      : t('historyImportingProcessed', { count: progress.done })
+    return working && working.sessionsTotal > 0
+      ? t('historyImportingProgress', { done: working.sessionsDone, total: working.sessionsTotal })
+      : t('historyImportingProcessed', { count: working?.sessionsDone ?? 0 })
   }
   return (
     <Modal

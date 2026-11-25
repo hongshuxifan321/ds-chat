@@ -337,6 +337,10 @@ export const deleteSession = (sessionId: string): Promise<void> =>
   })
 
 const putFiles = async (store: 'files' | 'filesStaging', files: StoredFile[]): Promise<void> => {
+  // 空批次直接返回：批量写入时末尾常带一个空批，不必开事务
+  if (!files.length) {
+    return
+  }
   const write = (records: StoredFileRecord[]) =>
     withDB(async (db) => {
       const tx = db.transaction(store, 'readwrite')
@@ -402,17 +406,35 @@ export const addStagingSession = (session: Session): Promise<void> =>
     await db.add('sessionsStaging', session)
   })
 
+/** 批量写入暂存会话（上游 v0.1.4）：一个事务写完一批，省掉每条一次事务的开销 */
+export const addStagingSessions = async (sessions: Session[]): Promise<void> => {
+  if (!sessions.length) {
+    return
+  }
+  const tx = (await getDB()).transaction('sessionsStaging', 'readwrite')
+  await Promise.all([...sessions.map((session) => tx.store.add(session)), tx.done])
+}
+
 export const saveStagingFiles = (files: StoredFile[]): Promise<void> =>
   putFiles('filesStaging', files)
 
-/** 图片位于会话 JSON 之后；全部读完后回填具体 MIME，保留归档给出的 isImage 标识。 */
-export const updateStagingFileTypes = (types: ReadonlyMap<string, string>): Promise<void> =>
-  withDB(async (db) => {
-    const tx = db.transaction('sessionsStaging', 'readwrite')
-    await Promise.all([
-      (async () => {
-        for (let cursor = await tx.store.openCursor(); cursor; cursor = await cursor.continue()) {
-          const session = cursor.value
+/** 回填 MIME，保留归档中的 isImage 标识；只碰归档里确实引用了图片的会话（上游 v0.1.4）。 */
+export const updateStagingFileTypes = async (
+  types: ReadonlyMap<string, string>,
+  sessionIds: ReadonlySet<string>
+): Promise<void> => {
+  if (sessionIds.size === 0) {
+    return
+  }
+  const tx = (await getDB()).transaction('sessionsStaging', 'readwrite')
+  await Promise.all([
+    (async () => {
+      try {
+        for (const id of sessionIds) {
+          const session = await tx.store.get(id)
+          if (!session) {
+            continue
+          }
           let changed = false
           for (const message of session.messages) {
             if (message.role !== 'user') {
@@ -427,13 +449,17 @@ export const updateStagingFileTypes = (types: ReadonlyMap<string, string>): Prom
             }
           }
           if (changed) {
-            await cursor.update(session)
+            await tx.store.put(session)
           }
         }
-      })(),
-      tx.done,
-    ])
-  })
+      } catch (error) {
+        abortTransaction(tx)
+        throw error
+      }
+    })(),
+    tx.done,
+  ])
+}
 
 /**
  * 导入完成后用暂存替换正式数据：同一事务中替换会话、摘要和原件，并清空暂存。

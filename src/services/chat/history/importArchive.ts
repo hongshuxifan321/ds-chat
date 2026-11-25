@@ -1,23 +1,12 @@
 import * as db from '../db.js'
+import type { Session } from '../types.js'
 import { openArchive, type ImportSource } from './archiveSource.js'
 import { BackupError, fail } from './errors.js'
 import type { SessionIndexEntry } from './format.js'
-import {
-  INDEX_PATH,
-  MANIFEST_PATH,
-  parseSessionFilesPath,
-  parseSessionPath,
-  USER_PATH,
-} from './paths.js'
+import { INDEX_PATH, MANIFEST_PATH, parseSessionFilesPath, parseSessionPath, USER_PATH } from './paths.js'
 import { checkManifest, readSessionFile, readSessionIndex } from './schema.js'
 import { toLocalSession } from './toLocal.js'
-import {
-  ArchiveError,
-  isZipFile,
-  readEntry,
-  skipEntry,
-  type ArchiveEntry,
-} from './zipReader.js'
+import { ArchiveError, isZipFile, readEntry, skipEntry, type ArchiveEntry } from './zipReader.js'
 
 /** 从原件字节补充图片 MIME；无法识别时为空字符串，图片身份仍由归档的 is_image 决定。 */
 const imageType = (bytes: Uint8Array): string => {
@@ -47,8 +36,14 @@ const imageType = (bytes: Uint8Array): string => {
   return ''
 }
 
+/** 直接从条目流解码（上游 v0.1.4）：不先拼出一个完整 Blob，省一次大对象分配 */
 const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
-  const text = await (await readEntry(entry)).text()
+  const decoder = new TextDecoder('utf-8')
+  let text = ''
+  for await (const chunk of entry.stream) {
+    text += decoder.decode(chunk, { stream: true })
+  }
+  text += decoder.decode()
   try {
     return JSON.parse(text)
   } catch {
@@ -91,6 +86,8 @@ export type ImportProgress =
 
 /** 会话目录下的图片条目 */
 const SESSION_FILE_PATH = /^chat_sessions\/[^/]+_files\//
+/** 图片条目属于哪个会话 */
+const fileOwner = (path: string) => /^chat_sessions\/([^/]+)_files\//.exec(path)?.[1]
 
 export type ImportOptions = {
   /**
@@ -101,13 +98,19 @@ export type ImportOptions = {
   onProgress?: (progress: ImportProgress) => void
 }
 
+/** 暂存批量写入的上限：条数与字节各一道，避免一批撑爆内存或写太久占着事务 */
+const SESSION_BATCH_COUNT = 32
+const SESSION_BATCH_BYTES = 2 * 1024 * 1024
+const IMAGE_BATCH_COUNT = 16
+const IMAGE_BATCH_BYTES = 4 * 1024 * 1024
+
 /**
- * 流式导入：manifest → user（不导入）→ 全部会话 JSON → index → 全部图片。
+ * 流式导入：manifest → user（不导入）→ 全部会话 JSON 与各自的图片 → index。
  * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
- * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
- * 单个会话结构异常时跳过它、其余照常导入；归档本身损坏（解压、CRC、文件缺失）才整体失败。
+ * 会话读完立即暂存，图片随所属会话一起写入；只回填归档里确实引用了图片的会话的 MIME。
+ * 单个会话结构异常时跳过它、其余照常导入；归档本身损坏（解压、CRC 文件缺失）才整体失败。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
- * `onProgress` 回报已处理会话数与会话总数，供界面显示进度；返回跳过的会话数与没能存下的图片张数。
+ * 返回被跳过的会话数与没能存下的图片张数。
  */
 export const importArchive = async (
   source: ImportSource,
@@ -124,19 +127,17 @@ export const importArchive = async (
       }
     : undefined
   const imported = new Set<string>()
-  /** 解析失败被跳过的会话数；这些会话的图片条目在下面一并跳过 */
+  /** 解析失败被跳过的会话数 */
   let skipped = 0
   /** 没能存到本机的图片张数：空间不足或浏览器不接受，都不该让整份归档失败 */
   let skippedImages = 0
-  /** 会话总数，读中央目录得到；0 表示还没算出来 */
-  let total = 0
-  /** 附件（图片）总数：会话导完后还要逐个解压保存，进度必须继续动 */
+  /** 会话总数与附件总数，读中央目录得到 */
+  let sessionTotal = 0
   let fileTotal = 0
   let savedFiles = 0
   let lastReport = 0
   /**
-   * 界面既要有「在动」的反馈，又不能被几千个会话刷爆：
-   * 首个与末个必报，其余最多每 100ms 报一次。
+   * 界面既要有「在动」的反馈，又不能被几千个会话刷爆：首个与末个必报，其余最多每 100ms 报一次。
    * 早先按「每 10 个」回报，少于 10 个对话的归档会整段显示 0。
    */
   const report = (force = false) => {
@@ -145,7 +146,7 @@ export const importArchive = async (
       return
     }
     lastReport = now
-    onProgress?.({ phase: 'sessions', done: imported.size, total })
+    onProgress?.({ phase: 'sessions', done: imported.size, total: sessionTotal })
   }
   const reportFiles = (force = false) => {
     const now = Date.now()
@@ -155,41 +156,107 @@ export const importArchive = async (
     lastReport = now
     onProgress?.({ phase: 'files', done: savedFiles, total: fileTotal })
   }
-  const images = new Map<string, string>()
-  /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
+
+  /** 会话 ID → 该会话目录下的图片条目：图片可能排在自己会话之前，先按路径归位 */
+  const filesBySession = new Map<string, ArchiveEntry[]>()
+  /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存第一次 */
   const stored = new Map<string, string>()
+  /** 图片 ID → 首次出现的条目偏移，用于上面那条去重 */
+  const firstImageOffset = new Map<string, number>()
+  /** 图片 ID → 引用它的会话，回填 MIME 时只碰这些会话 */
+  const fileSessions = new Map<string, Set<string>>()
   let manifest = false
   let index: SessionIndexEntry[] | undefined
 
+  let sessionBatch: Session[] = []
+  let sessionBatchBytes = 0
+  const flushSessions = async () => {
+    if (!sessionBatch.length) {
+      return
+    }
+    const batch = sessionBatch
+    sessionBatch = []
+    sessionBatchBytes = 0
+    await db.addStagingSessions(batch)
+    report()
+  }
+
+  let imageBatch: db.StoredFile[] = []
+  let imageBatchBytes = 0
+  const flushImages = async () => {
+    if (!imageBatch.length) {
+      return
+    }
+    const batch = imageBatch
+    imageBatch = []
+    imageBatchBytes = 0
+    try {
+      await db.saveStagingFiles(batch)
+    } catch (error) {
+      // 整批失败就退化成逐张写：一张写不进去（空间不足、单张超限）不该连累同批其余图片
+      db.reportStorageError('save imported image')(error)
+      for (const file of batch) {
+        try {
+          await db.saveStagingFiles([file])
+        } catch (single) {
+          db.reportStorageError('save imported image')(single)
+          stored.delete(file.id)
+          skippedImages += 1
+        }
+      }
+    }
+  }
+
   const saveImage = async (entry: ArchiveEntry, id: string) => {
-    if (stored.has(id)) {
+    if (entry.offset >= (firstImageOffset.get(id) ?? Infinity)) {
       await skipEntry(entry)
       return
     }
-    const data = await readEntry(entry)
-    const type = imageType(new Uint8Array(await data.slice(0, 16).arrayBuffer()))
-    try {
-      // 浏览器写不进 Blob 时会自动改存 base64（见 db.ts）；这里再兜一层：
-      // 真写不进去（空间不足、单张超限）就跳过这一张，别让整份归档失败。
-      await db.saveStagingFiles([{ id, blob: new Blob([data], { type }) }])
-      stored.set(id, type)
-    } catch (error) {
-      db.reportStorageError('save imported image')(error)
-      skippedImages += 1
+    if (imageBatchBytes + entry.size > IMAGE_BATCH_BYTES) {
+      await flushImages()
+    }
+    // 读到前 16 字节就判定 MIME，省掉再切一次 Blob
+    const blob = await readEntry(entry, imageType)
+    imageBatch.push({ id, blob })
+    imageBatchBytes += blob.size
+    firstImageOffset.set(id, entry.offset)
+    stored.set(id, blob.type)
+    savedFiles += 1
+    reportFiles(savedFiles === fileTotal)
+    if (imageBatch.length >= IMAGE_BATCH_COUNT || imageBatchBytes >= IMAGE_BATCH_BYTES) {
+      await flushImages()
     }
   }
 
   try {
-    // 中央目录解析完先算出会话与附件总数，进度才有分母（复用同一次解析，不多读一遍）。
-    // 回调拿到的已经是「将要读出」的条目：未勾选的会话与图片不在其中。
+    // 先把条目收集齐：图片可能排在自己会话之前，会话与附件要能按 ID 对上。
+    // 中央目录解析完先算总数（复用同一次解析），进度才有分母；未勾选的条目不在其中。
+    const entries: ArchiveEntry[] = []
     for await (const entry of openArchive(
       source,
-      (entries) => {
-        total = entries.filter((item) => parseSessionPath(item.path) !== null).length
-        fileTotal = entries.filter((item) => SESSION_FILE_PATH.test(item.path)).length
+      (list) => {
+        for (const item of list) {
+          if (parseSessionPath(item.path) !== null) {
+            sessionTotal += 1
+          } else if (SESSION_FILE_PATH.test(item.path)) {
+            fileTotal += 1
+          }
+        }
       },
       { skip }
     )) {
+      entries.push(entry)
+      const owner = parseSessionPath(entry.path)
+      if (owner !== null) {
+        filesBySession.set(owner, [])
+      }
+    }
+    for (const entry of entries) {
+      const owner = fileOwner(entry.path)
+      filesBySession.get(owner ?? '')?.push(entry)
+    }
+
+    for (const entry of entries) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
       if (!manifest) {
@@ -205,15 +272,11 @@ export const importArchive = async (
         if (imported.has(sessionId)) {
           fail('backupIncomplete')
         }
+        let local: ReturnType<typeof toLocalSession>
         try {
-          const local = toLocalSession(readSessionFile(await readJson(entry)))
+          local = toLocalSession(readSessionFile(await readJson(entry)))
           if (local.session.id !== sessionId) {
             fail('backupIncomplete')
-          }
-          await db.addStagingSession(local.session)
-          imported.add(sessionId)
-          for (const [imagePath, id] of local.images) {
-            images.set(imagePath, id)
           }
         } catch (error) {
           // 单个会话不符合预期就跳过它：官方导出格式由对方维护，
@@ -222,19 +285,53 @@ export const importArchive = async (
             throw error
           }
           skipped += 1
+          // 它名下的图片也一并跳过，别留成无主附件
+          for (const fileEntry of filesBySession.get(sessionId) ?? []) {
+            await skipEntry(fileEntry)
+          }
+          report()
+          continue
         }
-        report(imported.size === 1 || imported.size === total)
+        imported.add(sessionId)
+        // 图片随会话一起写：归档里图片排在会话前后都不影响
+        for (const fileEntry of filesBySession.get(sessionId) ?? []) {
+          const id = local.images.get(fileEntry.path)
+          await (id === undefined ? skipEntry(fileEntry) : saveImage(fileEntry, id))
+        }
+        for (const message of local.session.messages) {
+          if (message.role !== 'user') {
+            continue
+          }
+          for (const attachment of message.files) {
+            let sessions = fileSessions.get(attachment.id)
+            if (!sessions) {
+              sessions = new Set()
+              fileSessions.set(attachment.id, sessions)
+            }
+            sessions.add(sessionId)
+          }
+        }
+        if (sessionBatchBytes + entry.size > SESSION_BATCH_BYTES) {
+          await flushSessions()
+        }
+        sessionBatch.push(local.session)
+        sessionBatchBytes += entry.size
+        if (
+          sessionBatch.length >= SESSION_BATCH_COUNT ||
+          sessionBatchBytes >= SESSION_BATCH_BYTES
+        ) {
+          await flushSessions()
+        }
+        report()
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
+        await flushSessions()
+      } else if (SESSION_FILE_PATH.test(path)) {
+        // 附件正文已经跟着所属会话处理过；这里只可能是没勾选会话的图片，跳过即可
+        await skipEntry(entry)
       } else {
-        // 其余条目按图片处理：只有被成功导入的会话引用到的才保存。
         // 不认识的条目直接跳过——宁可少一个附件，也不要整份归档失败。
-        const id = images.get(path)
-        await (id === undefined ? skipEntry(entry) : saveImage(entry, id))
-        if (id !== undefined) {
-          savedFiles += 1
-          reportFiles(savedFiles === fileTotal)
-        }
+        await skipEntry(entry)
       }
     }
   } catch (error) {
@@ -243,23 +340,35 @@ export const importArchive = async (
   if (!manifest) {
     fail('backupUnrecognized')
   }
-  const entries = index ?? fail('backupIncomplete')
+  const listed = index ?? fail('backupIncomplete')
   // index 只列出成功写出的会话；被跳过的会话即使出现在索引里也忽略。
-  const listed = new Set(entries.map((entry) => entry.id))
-  if (listed.size !== entries.length || [...imported].some((id) => !listed.has(id))) {
+  const listedIds = new Set(listed.map((entry) => entry.id))
+  if (listedIds.size !== listed.length || [...imported].some((id) => !listedIds.has(id))) {
     fail('backupIncomplete')
   }
-  if (imported.size === 0 && (total > 0 || listed.size > 0)) {
+  if (imported.size === 0 && (sessionTotal > 0 || listedIds.size > 0)) {
     fail('backupIncomplete')
   }
+  await flushSessions()
+  await flushImages()
   // 会话与附件都读完了，剩下回填 MIME 和替换正式数据：换一条文案，别让进度停在 100%
   report(true)
   if (fileTotal > 0) {
     reportFiles(true)
   }
   onProgress?.({ phase: 'saving' })
-  if (stored.size > 0) {
-    await db.updateStagingFileTypes(stored)
+  // 只回填归档里确实引用了图片的会话，省掉逐条扫暂存
+  const targetSessions = new Set<string>()
+  for (const [id, type] of stored) {
+    if (!type) {
+      continue
+    }
+    for (const sessionId of fileSessions.get(id) ?? []) {
+      targetSessions.add(sessionId)
+    }
+  }
+  if (targetSessions.size > 0) {
+    await db.updateStagingFileTypes(stored, targetSessions)
   }
   return { skipped, skippedImages }
 }

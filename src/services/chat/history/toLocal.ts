@@ -238,7 +238,8 @@ const toAssistant = (message: ChatMessage): AssistantMessage => {
  * current_message_id 到根的路径为当前分支；其余节点默认选中 id 最大的子消息。
  */
 const buildTree = (file: SessionFile): Pick<Session, 'messages' | 'rootMessageId'> => {
-  const sorted = file.messages.toSorted((a, b) => a.id - b.id)
+  // 老浏览器没有 toSorted（上游 v0.1.4 同类修复），拷一份再排
+  const sorted = [...file.messages].sort((a, b) => a.id - b.id)
   const byId = new Map<string, Message>()
   const parents = new Map<string, string>()
   for (const message of sorted) {

@@ -95,7 +95,8 @@ const directoryEntries = (files: File[]): ArchiveEntry[] => {
     if (!relative || relative.split('/').some((part) => !part || part === '.' || part === '..')) {
       continue
     }
-    entries.push({ path: relative, size: file.size, stream: blobStream(file) })
+    // 目录来源没有真实偏移：用排序前的下标充当出现顺序，供「同一图片只存第一次」比较
+    entries.push({ path: relative, size: file.size, offset: entries.length, stream: blobStream(file) })
   }
   return entries.sort((a, b) => rank(a.path) - rank(b.path) || (a.path < b.path ? -1 : 1))
 }

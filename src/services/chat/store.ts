@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { getAbortReason, throwIfAborted } from '../../utils/abort.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
 import type {
@@ -1055,7 +1056,7 @@ const prepareFiles = async (sessionId: string, request: Request, signal: AbortSi
   const serverIds = new Map<string, string>()
   // 停止生成立即生效；上传本身不取消（输入框与其他消息可能共用同一任务），完成后照常写回 serverId
   const aborted = new Promise<never>((_, reject) => {
-    signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+    signal.addEventListener('abort', () => reject(getAbortReason(signal)), { once: true })
   })
   // 旧图片超限时先清除 ID，交给下方已有的附件补传流程。
   const files = [
@@ -1088,7 +1089,7 @@ const prepareFiles = async (sessionId: string, request: Request, signal: AbortSi
   }
 
   const pending = new Map<string, FileAttachment>()
-  for (const [user] of getContextRounds(request.history).toReversed()) {
+  for (const [user] of getContextRounds(request.history).reverse()) {
     for (const file of user.files) {
       if (!file.serverId && !serverIds.has(file.id) && !pending.has(file.id)) {
         pending.set(file.id, file)
@@ -1100,14 +1101,14 @@ const prepareFiles = async (sessionId: string, request: Request, signal: AbortSi
     // 补传期间不发布逐张进度：长会话列表会跟着重渲染，150 轮 / 30 图实测占掉 30 秒里的 28.8 秒
     await runWithoutUploadProgress(async () => {
       for (const file of pending.values()) {
-        signal.throwIfAborted()
+        throwIfAborted(signal)
         try {
           const serverId = await Promise.race([ensureServerId(apiKey, file), aborted])
           if (serverId) {
             historyServerIds.set(file.id, serverId)
           }
         } catch {
-          signal.throwIfAborted()
+          throwIfAborted(signal)
         }
       }
     })
